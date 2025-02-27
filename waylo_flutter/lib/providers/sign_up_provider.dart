@@ -56,16 +56,7 @@ class SignUpProvider extends ChangeNotifier {
     _provider = provider;
     notifyListeners();
   }
-
-  // void setAuthToken(String token) {
-  //   _authToken = token;
-  //   notifyListeners();
-  // }
-  //
-  // void setLoggedIn(bool status) {
-  //   _isLoggedIn = status;
-  //   notifyListeners();
-  // }
+  
 
   Future<void> setAuthToken(String token) async { // SharedPreferences에 저장
     _authToken = token;
