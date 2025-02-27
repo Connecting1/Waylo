@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
 import 'sign_up_birth_date.dart';
+import '../../styles/app_styles.dart';
 
 class SignUpPasswordPage extends StatefulWidget {
   const SignUpPasswordPage({super.key});
@@ -43,9 +44,9 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97DCF1),
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF97DCF1),
+        backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
