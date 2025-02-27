@@ -6,6 +6,7 @@ import 'sign_up_birth_date.dart';
 import 'sign_in.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
+import '../../styles/app_styles.dart';
 
 
 class SignUpStartPage extends StatefulWidget {
@@ -75,20 +76,20 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97DCF1), // 배경색
+      backgroundColor: AppColors.primary, // 배경색
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 로고 이미지
             Image.asset(
-              'assets/logo2.png',
+              'assets/logos/logo2.png',
               width: 250,
               height: 250,
             ),
 
             Text(
-              'enjoy your trip\nand write it down',
+              'Enjoy Your Trip\nAnd Write It Down',
               style: TextStyle(
                 fontSize: 35, // 글자 크기
                 fontWeight: FontWeight.bold, // 글자 굵기
@@ -124,7 +125,7 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
                         width: 24, // 로고 크기 고정
                         height: 24,
                         child: Image.asset(
-                          'assets/google_logo.png',
+                          'assets/logos/google_logo.png',
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -154,7 +155,7 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
                         width: 24, // 로고 크기 고정
                         height: 24,
                         child: Image.asset(
-                          'assets/kakao_logo.png',
+                          'assets/logos/kakao_logo.png',
                           fit: BoxFit.cover,
                         ),
                       ),
@@ -184,7 +185,7 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
                         width: 24, // 로고 크기 고정
                         height: 24,
                         child: Image.asset(
-                          'assets/facebook_logo.png',
+                          'assets/logos/facebook_logo.png',
                           fit: BoxFit.cover,
                         ),
                       ),
