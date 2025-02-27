@@ -6,4 +6,4 @@ class AlbumsConfig(AppConfig):
     name = 'albums'
 
     def ready(self):
-        import albums.signals  # ✅ signals.py import
+        import albums.signals  # signals.py import
