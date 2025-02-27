@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/sign_up_provider.dart';
-import '../../api_service.dart';
+import 'package:waylo_flutter/services/api/user_api.dart';
 import '../main/main_tab.dart';
+import '../../styles/app_styles.dart';
 
 class SignUpPhoneVerificationPage extends StatefulWidget {
   const SignUpPhoneVerificationPage({Key? key}) : super(key: key);
@@ -62,20 +64,20 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
 
     final provider = Provider.of<SignUpProvider>(context, listen: false);
 
-    print("회원가입 요청 데이터:");
-    print("Email: ${provider.email}");
-    print("Password: ${provider.password}");
-    print("Gender: ${provider.gender}");
-    print("Username: ${provider.username}");
-    print("Phone Number: ${provider.phoneNumber}");
-    print("Provider: ${provider.provider}"); // 여기서 google이 맞는지 확인
+    print("🚀 회원가입 요청 데이터:");
+    print("📧 Email: ${provider.email}");
+    print("🔑 Password: ${provider.password}");
+    print("🧑‍🦰 Gender: ${provider.gender}");
+    print("👤 Username: ${provider.username}");
+    print("📱 Phone Number: ${provider.phoneNumber}");
+    print("🌍 Provider: ${provider.provider}"); // 여기서 google이 맞는지 확인
 
     // API 요청 시작 (로딩 상태 적용)
     setState(() {
       _isLoading = true;
     });
 
-    final response = await ApiService.createUser(
+    final response = await UserApi.createUser(
       email: provider.email,
       password: provider.password,
       gender: provider.gender,
@@ -83,6 +85,8 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       phoneNumber: provider.phoneNumber,
       provider: provider.provider,
     );
+
+    print("🟡 회원가입 API 응답: $response");
 
     setState(() {
       _isLoading = false; // API 요청 완료 후 로딩 해제
@@ -96,15 +100,23 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       provider.setLoggedIn(true);
       provider.setAuthToken(response["auth_token"] ?? "");
 
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      if (response.containsKey("id")) {
+        await prefs.setString("user_id", response["id"]);
+        print("✅ 회원가입 후 user_id 저장 완료: ${response["id"]}");
+      } else {
+        print("❌ 회원가입 응답에 id 없음");
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("회원가입 성공!")),
+        const SnackBar(content: Text("✅ 회원가입 성공!")),
       );
 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => MainTabPage()),
       );
-      print("회원가입 성공!"); // 콘솔 로그 확인용
+      print("✅ 회원가입 성공!"); // 콘솔 로그 확인용
 
     }
   }
@@ -112,9 +124,9 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97DCF1),
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF97DCF1),
+        backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
