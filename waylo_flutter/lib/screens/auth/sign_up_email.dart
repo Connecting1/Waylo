@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'sign_up_password.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
+import '../../styles/app_styles.dart';
 
 
 class SignUpEmailPage extends StatefulWidget {
@@ -49,9 +50,9 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97DCF1),
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF97DCF1),
+        backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
