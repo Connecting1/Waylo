@@ -10,7 +10,7 @@ class FriendRequest(models.Model):
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
         ('rejected', 'Rejected'),
-    ], default='pending')  # ✅ 친구 요청 상태 (수락, 거절 가능)
+    ], default='pending')  # 친구 요청 상태 (수락, 거절 가능)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
