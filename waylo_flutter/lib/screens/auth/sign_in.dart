@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../providers/sign_up_provider.dart';
-import '../../api_service.dart';
+import 'package:waylo_flutter/services/api/user_api.dart';
 import '../main/main_tab.dart';
+import '../../styles/app_styles.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -21,14 +23,14 @@ class _SignInPageState extends State<SignInPage> {
     final password = _passwordController.text.trim();
     final provider = Provider.of<SignUpProvider>(context, listen: false);
 
-    print("로그인 요청 시작: email=$email, password=$password");
+    print("🔵 로그인 요청 시작: email=$email, password=$password");
 
     setState(() { _isLoading = true; });
 
     try {
-      final response = await ApiService.loginUser(email, password);
+      final response = await UserApi.loginUser(email, password);
 
-      print("로그인 응답: $response"); // 응답 확인
+      print("🟡 로그인 응답: $response"); // 응답 확인
 
       setState(() { _isLoading = false; });
 
@@ -36,25 +38,33 @@ class _SignInPageState extends State<SignInPage> {
         provider.setAuthToken(response["auth_token"]);
         provider.setLoggedIn(true);
 
-        print("로그인 성공, 메인 화면으로 이동");
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        if (response.containsKey("user_id")) {
+          await prefs.setString("user_id", response["user_id"]);
+          print("✅ user_id 저장 완료: ${response["user_id"]}");
+        } else {
+          print("❌ user_id 없음");
+        }
+
+        print("✅ 로그인 성공, 메인 화면으로 이동");
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MainTabPage()),
         );
-      } else { // 로그인 실패
-        print("로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호"}");
+      } else { // ❌ 로그인 실패
+        print("❌ 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호"}");
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호입니다."}")),
+          SnackBar(content: Text("❌ 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호입니다."}")),
         );
       }
     } catch (e) {
       setState(() { _isLoading = false; }); // 예외 발생 시 로딩 해제
-      print("로그인 요청 중 예외 발생: $e");
+      print("❌ 로그인 요청 중 예외 발생: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("네트워크 오류: 로그인할 수 없습니다.")),
+        SnackBar(content: Text("❌ 네트워크 오류: 로그인할 수 없습니다.")),
       );
     }
   }
@@ -63,9 +73,9 @@ class _SignInPageState extends State<SignInPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97DCF1),
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF97DCF1),
+        backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
