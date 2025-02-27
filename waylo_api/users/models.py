@@ -1,4 +1,3 @@
-
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 import uuid
@@ -25,9 +24,15 @@ class User(AbstractUser):
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(auto_now_add=True)
+    account_visibility = models.CharField(
+        max_length=10,
+        choices=[("public", "Public"), ("private", "Private")],
+        default="public"
+    )
 
     class Meta:
         db_table = 'users'
+
 
 class CustomToken(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
