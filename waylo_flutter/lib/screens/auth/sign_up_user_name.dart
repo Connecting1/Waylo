@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
 import 'sign_up_phone_verification.dart';
+import '../../styles/app_styles.dart';
 
 class SignUpUserNamePage extends StatefulWidget {
   const SignUpUserNamePage({super.key});
@@ -40,9 +41,9 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF97DCF1),
+      backgroundColor: AppColors.primary,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF97DCF1),
+        backgroundColor: AppColors.primary,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
