@@ -57,6 +57,7 @@ def user_login_view(request):
         return Response({"error": "비밀번호가 일치하지 않습니다."}, status=status.HTTP_401_UNAUTHORIZED)
 
 
+
 @api_view(['GET'])
 def get_user_info(request, user_id):  # ✅ user_id를 URL에서 받음
     try:
@@ -77,19 +78,18 @@ def get_user_info(request, user_id):  # ✅ user_id를 URL에서 받음
         return Response({'error': 'Server Error'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-
 @api_view(['PATCH'])
 @parser_classes([MultiPartParser])
 def update_user_info(request, user_id):
     try:
         user = User.objects.get(id=user_id)
 
-        # 요청 데이터에서 필드 가져오기
-        user.username = request.data.get('username', user.username)
-        user.email = request.data.get('email', user.email)
-        user.gender = request.data.get('gender', user.gender)
-        user.phone_number = request.data.get('phone_number', user.phone_number)
-        user.account_visibility = request.data.get('account_visibility', user.account_visibility)
+        # ✅ request.data에서 None이 아닌 값만 업데이트
+        update_fields = ['username', 'email', 'gender', 'phone_number', 'account_visibility']
+        for field in update_fields:
+            value = request.data.get(field)
+            if value is not None:  # None이 아닐 때만 업데이트
+                setattr(user, field, value)
 
         # ✅ 프로필 사진 처리
         if "file" in request.FILES:
@@ -97,6 +97,7 @@ def update_user_info(request, user_id):
             user_folder = os.path.join(settings.MEDIA_ROOT, str(user.id), "profile")
             file_path = os.path.join(user_folder, "profile.jpg")
 
+            # 기존 프로필 사진 삭제
             if os.path.exists(user_folder):
                 for file_name in os.listdir(user_folder):
                     file_path_to_delete = os.path.join(user_folder, file_name)
@@ -121,6 +122,46 @@ def update_user_info(request, user_id):
             "account_visibility": user.account_visibility,
         }, status=status.HTTP_200_OK)
 
+    except User.DoesNotExist:
+        return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"❌ Unexpected error: {e}")
+        return Response({"error": "Server Error"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+
+@api_view(['PATCH'])
+@parser_classes([MultiPartParser])
+def update_profile_image(request, user_id):
+    try:
+        user = User.objects.get(id=user_id)
+        
+        if "file" in request.FILES:
+            image_file = request.FILES["file"]
+            user_folder = os.path.join(settings.MEDIA_ROOT, str(user.id), "profile")
+            file_path = os.path.join(user_folder, "profile.jpg")
+            
+            # 기존 프로필 사진 삭제
+            if os.path.exists(user_folder):
+                for file_name in os.listdir(user_folder):
+                    file_path_to_delete = os.path.join(user_folder, file_name)
+                    os.remove(file_path_to_delete)
+            
+            os.makedirs(user_folder, exist_ok=True)
+            default_storage.save(file_path, ContentFile(image_file.read()))
+            
+            image_url = posixpath.join(settings.MEDIA_URL, str(user.id), "profile", "profile.jpg").replace("\\", "/")
+            user.profile_image = image_url
+            user.save(update_fields=['profile_image'])  # 프로필 이미지 필드만 업데이트
+            
+            return Response({
+                "message": "Profile image updated successfully",
+                "user_id": str(user.id),
+                "profile_image": user.profile_image
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({"error": "No image file provided"}, status=status.HTTP_400_BAD_REQUEST)
+        
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
