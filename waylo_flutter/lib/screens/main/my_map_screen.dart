@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:image_picker/image_picker.dart' as image_picker;
 import 'package:exif/exif.dart';
 import 'dart:io';
+import 'dart:async';
 
 class MyMapScreenPage extends StatefulWidget {
   @override
@@ -17,8 +18,21 @@ class MyMapScreenPage extends StatefulWidget {
 class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAliveClientMixin {
   late MapboxMap mapboxMap;
   late String accessToken;
-  PointAnnotationManager? pointAnnotationManager;
+  PointAnnotationManager? photoAnnotationManager;
+  PointAnnotationManager? flagAnnotationManager;
   Map<String, Map<String, dynamic>> countryData = {}; // 나라별 좌표 및 국기 저장
+  double currentZoomLevel = 2.0; // 현재 줌 레벨
+
+  // 사진 마커와 국기 마커 목록
+  List<PointAnnotation> photoMarkers = [];
+  List<PointAnnotation> flagMarkers = [];
+
+  // 마지막 사진 위치 저장
+  List<Map<String, dynamic>> photoLocations = [];
+
+  // 줌 레벨 확인용 타이머
+  Timer? _zoomCheckTimer;
+  bool isMapInitialized = false;
 
   @override
   void initState() {
@@ -26,6 +40,95 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     _loadCountryData();
     accessToken = const String.fromEnvironment("ACCESS_TOKEN");
     MapboxOptions.setAccessToken(accessToken);
+  }
+
+  // 📌 줌 레벨 확인 타이머 시작
+  void _startZoomCheckTimer() {
+    _zoomCheckTimer?.cancel();
+    _zoomCheckTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+      if (isMapInitialized && mounted) {
+        mapboxMap.getCameraState().then((cameraState) {
+          if (currentZoomLevel != cameraState.zoom) {
+            setState(() {
+              currentZoomLevel = cameraState.zoom;
+              _updateVisibility();
+            });
+          }
+        });
+      }
+    });
+  }
+
+  // 📌 줌 레벨에 따라 마커 가시성 업데이트 (로직 반전)
+  void _updateVisibility() async {
+    if (photoAnnotationManager == null || flagAnnotationManager == null || !isMapInitialized) {
+      return;
+    }
+
+    // 확대 시 (줌 레벨이 높음) 사진만 표시
+    if (currentZoomLevel > 4.0) {
+      // 국기 마커 모두 삭제
+      for (var marker in List.from(flagMarkers)) {
+        try {
+          await flagAnnotationManager!.delete(marker);
+          flagMarkers.remove(marker);
+        } catch (e) {
+          debugPrint("마커 삭제 오류: $e");
+        }
+      }
+
+      // 사진 마커가 없으면 추가
+      if (photoMarkers.isEmpty && photoLocations.isNotEmpty) {
+        await _addStoredPhotoMarkers();
+      }
+    }
+    // 축소 시 (줌 레벨이 낮음) 국기만 표시
+    else {
+      // 사진 마커 모두 삭제
+      for (var marker in List.from(photoMarkers)) {
+        try {
+          await photoAnnotationManager!.delete(marker);
+          photoMarkers.remove(marker);
+        } catch (e) {
+          debugPrint("마커 삭제 오류: $e");
+        }
+      }
+
+      // 국기 마커가 없으면 추가
+      if (flagMarkers.isEmpty) {
+        await _addStoredFlagMarkers();
+      }
+    }
+  }
+
+  // 저장된 국기 마커 추가
+  Future<void> _addStoredFlagMarkers() async {
+    for (var countryName in countryData.keys) {
+      var country = countryData[countryName]!;
+      if (country.containsKey("flagImage") &&
+          country.containsKey("latitude") &&
+          country.containsKey("longitude")) {
+
+        double flagLat = country["latitude"];
+        double flagLon = country["longitude"];
+        Uint8List flagImage = country["flagImage"];
+
+        await _addMarkerToMap(flagLat, flagLon, flagImage, 0.3, isPhoto: false);
+      }
+    }
+  }
+
+  // 저장된 사진 마커 추가
+  Future<void> _addStoredPhotoMarkers() async {
+    for (var photoData in photoLocations) {
+      await _addMarkerToMap(
+          photoData["latitude"],
+          photoData["longitude"],
+          photoData["image"],
+          0.1,
+          isPhoto: true
+      );
+    }
   }
 
   // 📌 국기 데이터 로드 (countries.json)
@@ -57,7 +160,7 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     }
   }
 
-  // 📌 사진의 GPS 좌표 추출 후 지도에 마커 추가
+  // 📌 사진의 GPS 좌표 추출 후 지도에 마커 추가 (로직 반전)
   Future<void> _extractLocationAndAddMarker(File imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();
@@ -70,10 +173,20 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
         Uint8List resizedPhoto = await _resizeImage(imageFile, 150);
         String? countryName = await _getCountryFromCoordinates(lat, lon);
 
-        // 📌 사진 마커 추가 (사진이 찍힌 위치)
-        _addMarkerToMap(lat, lon, resizedPhoto, 0.1);
+        // 사진 정보 저장
+        photoLocations.add({
+          "latitude": lat,
+          "longitude": lon,
+          "image": resizedPhoto,
+        });
 
-        // 📌 국기 마커 추가 (countries.json의 좌표 사용)
+        // 📌 확대/축소 수준에 따라 마커 표시 결정 (로직 반전)
+        if (currentZoomLevel > 4.0) {
+          // 확대 상태일 때는 사진 마커만 추가
+          await _addMarkerToMap(lat, lon, resizedPhoto, 0.1, isPhoto: true);
+        }
+
+        // 📌 국기 이미지 다운로드 및 저장
         if (countryName != null && countryData.containsKey(countryName)) {
           String flagUrl = countryData[countryName]!["flagUrl"];
           double flagLat = countryData[countryName]!["latitude"];
@@ -81,30 +194,62 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
 
           Uint8List? flagImage = await _downloadImage(flagUrl);
           if (flagImage != null) {
-            _addMarkerToMap(flagLat, flagLon, flagImage, 0.3); // 국기 크기: 0.3
+            // 국기 이미지를 메모리에 캐시
+            countryData[countryName]!["flagImage"] = flagImage;
+
+            // 축소 상태일 때는 국기 마커만 추가
+            if (currentZoomLevel <= 4.0) {
+              await _addMarkerToMap(flagLat, flagLon, flagImage, 0.3, isPhoto: false);
+            }
           }
         }
+
+        // 성공적으로 마커 추가 후 카메라 이동
+        mapboxMap.flyTo(
+          CameraOptions(
+            center: Point(coordinates: Position(lon, lat)),
+            zoom: currentZoomLevel,
+          ),
+          MapAnimationOptions(duration: 1000), // 1초 = 1000ms (int 타입)
+        );
       } else {
         debugPrint("❌ 사진에 위치 정보 없음");
+        ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("선택한 사진에 위치 정보가 없습니다."))
+        );
       }
     } catch (e) {
       debugPrint("⚠️ 오류 발생: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("사진 처리 중 오류가 발생했습니다: $e"))
+      );
     }
   }
 
-  // 📌 지도에 마커 추가 (국기와 사진 크기 다르게 설정)
-  Future<void> _addMarkerToMap(double lat, double lon, Uint8List imageData, double size) async {
-    if (pointAnnotationManager == null) {
-      pointAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+  // 📌 지도에 마커 추가 (국기와 사진 별도 관리)
+  Future<void> _addMarkerToMap(double lat, double lon, Uint8List imageData, double size, {required bool isPhoto}) async {
+    // 사진용 어노테이션 매니저와 국기용 어노테이션 매니저를 별도로 생성
+    if (photoAnnotationManager == null) {
+      photoAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+    }
+
+    if (flagAnnotationManager == null) {
+      flagAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
     }
 
     PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
       geometry: Point(coordinates: Position(lon, lat)),
       image: imageData,
-      iconSize: size, // 크기 조정
+      iconSize: size,
     );
 
-    await pointAnnotationManager?.create(pointAnnotationOptions);
+    if (isPhoto) {
+      PointAnnotation marker = await photoAnnotationManager!.create(pointAnnotationOptions);
+      photoMarkers.add(marker);
+    } else {
+      PointAnnotation marker = await flagAnnotationManager!.create(pointAnnotationOptions);
+      flagMarkers.add(marker);
+    }
   }
 
   // 📌 네트워크 이미지 다운로드 (국기 가져오기)
@@ -173,6 +318,34 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
             ),
             onMapCreated: (MapboxMap mapbox) {
               mapboxMap = mapbox;
+              isMapInitialized = true;
+
+              // 현재 카메라 상태 가져오기
+              mapbox.getCameraState().then((cameraState) {
+                if (mounted) {
+                  setState(() {
+                    currentZoomLevel = cameraState.zoom;
+                  });
+                }
+              });
+
+              // 줌 레벨 체크 타이머 시작
+              _startZoomCheckTimer();
+
+              // 제스처 이벤트 설정
+              mapbox.gestures.updateSettings(
+                GesturesSettings(
+                  rotateEnabled: true,
+                  pinchToZoomEnabled: true,
+                  scrollEnabled: true,
+                  doubleTapToZoomInEnabled: true,
+                  doubleTouchToZoomOutEnabled: true,
+                  pinchToZoomDecelerationEnabled: true,
+                  rotateDecelerationEnabled: true,
+                  scrollDecelerationEnabled: true,
+                  quickZoomEnabled: true,
+                ),
+              );
             },
           ),
           Positioned(
@@ -184,8 +357,56 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
               child: Text("사진 선택하여 지도에 추가"),
             ),
           ),
+          // 현재 줌 레벨 표시 (개발 중 디버깅용)
+          Positioned(
+            bottom: 30,
+            right: 20,
+            child: Container(
+              padding: EdgeInsets.all(8),
+              color: Colors.black.withOpacity(0.6),
+              child: Text(
+                "줌 레벨: ${currentZoomLevel.toStringAsFixed(1)} ${currentZoomLevel > 4.0 ? '(사진 표시)' : '(국기 표시)'}",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
+          // 줌 조절 버튼 (테스트용)
+          Positioned(
+            bottom: 80,
+            right: 20,
+            child: Column(
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    mapboxMap.flyTo(
+                      CameraOptions(zoom: 5.0),
+                      MapAnimationOptions(duration: 1000), // 1초 = 1000ms (int 타입)
+                    );
+                  },
+                  child: Text("확대 (사진)"),
+                ),
+                SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () {
+                    mapboxMap.flyTo(
+                      CameraOptions(zoom: 2.0),
+                      MapAnimationOptions(duration: 1000), // 1초 = 1000ms (int 타입)
+                    );
+                  },
+                  child: Text("축소 (국기)"),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    // 타이머 정리
+    _zoomCheckTimer?.cancel();
+    super.dispose();
   }
 }
