@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -9,6 +11,8 @@ import 'package:image_picker/image_picker.dart' as image_picker;
 import 'package:exif/exif.dart';
 import 'dart:io';
 import 'dart:async';
+import 'package:flutter/rendering.dart';
+import 'package:image/image.dart' as img;
 
 class MyMapScreenPage extends StatefulWidget {
   @override
@@ -27,8 +31,8 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
   List<PointAnnotation> photoMarkers = [];
   List<PointAnnotation> flagMarkers = [];
 
-  // 마지막 사진 위치 저장
-  List<Map<String, dynamic>> photoLocations = [];
+  // 위치별 사진 그룹화를 위한 맵
+  Map<String, List<Map<String, dynamic>>> photoLocationGroups = {};
 
   // 줌 레벨 확인용 타이머
   Timer? _zoomCheckTimer;
@@ -59,7 +63,7 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     });
   }
 
-  // 📌 줌 레벨에 따라 마커 가시성 업데이트 (로직 반전)
+  // 📌 줌 레벨에 따라 마커 가시성 업데이트
   void _updateVisibility() async {
     if (photoAnnotationManager == null || flagAnnotationManager == null || !isMapInitialized) {
       return;
@@ -78,8 +82,8 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
       }
 
       // 사진 마커가 없으면 추가
-      if (photoMarkers.isEmpty && photoLocations.isNotEmpty) {
-        await _addStoredPhotoMarkers();
+      if (photoMarkers.isEmpty && photoLocationGroups.isNotEmpty) {
+        await _addPhotoMarkersToMap();
       }
     }
     // 축소 시 (줌 레벨이 낮음) 국기만 표시
@@ -101,7 +105,7 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     }
   }
 
-  // 저장된 국기 마커 추가
+  // 국기 마커 추가
   Future<void> _addStoredFlagMarkers() async {
     for (var countryName in countryData.keys) {
       var country = countryData[countryName]!;
@@ -118,16 +122,135 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     }
   }
 
-  // 저장된 사진 마커 추가
-  Future<void> _addStoredPhotoMarkers() async {
-    for (var photoData in photoLocations) {
-      await _addMarkerToMap(
-          photoData["latitude"],
-          photoData["longitude"],
-          photoData["image"],
-          0.1,
-          isPhoto: true
+  // 📌 위치 문자열로 변환 (그룹화 키로 사용)
+  String _locationToString(double lat, double lon) {
+    // 소수점 5자리까지만 고려하여 근처 위치는 동일하게 취급
+    return "${lat.toStringAsFixed(5)}_${lon.toStringAsFixed(5)}";
+  }
+
+  // 📌 새로운 사진 마커 추가 함수 - 사각형 프레임과 숫자 표시
+  Future<void> _addPhotoMarkersToMap() async {
+    if (photoAnnotationManager == null) {
+      photoAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
+    }
+
+    // 위치 그룹별로 마커 생성
+    for (var locationKey in photoLocationGroups.keys) {
+      var photoList = photoLocationGroups[locationKey]!;
+      if (photoList.isEmpty) continue;
+
+      // 위치 정보
+      double lat = photoList[0]["latitude"];
+      double lon = photoList[0]["longitude"];
+
+      // 가장 최근 추가된 사진을 썸네일로 사용
+      Uint8List photoImage = photoList.last["image"];
+
+      // 사진 개수 (숫자 표시용)
+      int count = photoList.length;
+
+      // 사각형 프레임과 숫자가 있는 마커 이미지 생성
+      Uint8List markerImage = await _createSquareMarkerWithCount(photoImage, count);
+
+      // 마커 추가
+      PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
+        geometry: Point(coordinates: Position(lon, lat)),
+        image: markerImage,
+        iconSize: 1.0, // 크기를 키움 (생성된 이미지 그대로 표시)
       );
+
+      PointAnnotation marker = await photoAnnotationManager!.create(pointAnnotationOptions);
+      photoMarkers.add(marker);
+    }
+  }
+
+  // 📌 사각형 프레임과 숫자가 있는 마커 이미지 생성
+  Future<Uint8List> _createSquareMarkerWithCount(Uint8List photoBytes, int count) async {
+    // 캔버스 크기 설정
+    final int size = 120; // 최종 이미지 크기
+    final int photoSize = 100; // 내부 사진 크기
+    final double borderWidth = 4.0; // 테두리 두께
+    final Color borderColor = Colors.blue; // 테두리 색상
+
+    // 임시 UI 이미지를 위한 레코더 및 캔버스 생성
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+
+    // 배경을 투명하게 설정
+    canvas.drawColor(Colors.transparent, BlendMode.clear);
+
+    // 이미지 로드
+    final ui.Codec codec = await ui.instantiateImageCodec(photoBytes);
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+
+    // 이미지 크기 계산 (정사각형 유지)
+    final double photoLeft = (size - photoSize) / 2;
+    final double photoTop = (size - photoSize) / 2;
+
+    // 파란색 사각형 배경 그리기
+    final Paint borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(photoLeft - borderWidth, photoTop - borderWidth,
+            photoSize + (borderWidth * 2), photoSize + (borderWidth * 2)),
+        Radius.circular(8),
+      ),
+      borderPaint,
+    );
+
+    // 사진 그리기 (정사각형으로 자름)
+    final Rect srcRect = _centerCrop(frameInfo.image.width, frameInfo.image.height);
+    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, photoSize.toDouble(), photoSize.toDouble());
+    canvas.drawImageRect(frameInfo.image, srcRect, destRect, Paint());
+
+    // 사진 개수 표시 (2장 이상일 때만)
+    if (count > 1) {
+      final TextPainter textPainter = TextPainter(
+        text: TextSpan(
+          text: count.toString(),
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        textDirection: TextDirection.ltr,
+      );
+      textPainter.layout();
+
+      // 숫자를 오른쪽 상단에 표시
+      textPainter.paint(
+        canvas,
+        Offset(
+          photoLeft + photoSize - textPainter.width - 8,
+          photoTop + 8,
+        ),
+      );
+    }
+
+    // 이미지로 변환
+    final ui.Image image = await recorder.endRecording().toImage(size, size);
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    return byteData!.buffer.asUint8List();
+  }
+
+  // 이미지를 정사각형으로 자르는 함수 - 타입 오류 수정
+  Rect _centerCrop(int width, int height) {
+    if (width == height) {
+      return Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble());
+    }
+
+    if (width > height) {
+      // 가로가 더 긴 경우
+      double diff = (width - height).toDouble(); // int를 double로 변환
+      return Rect.fromLTWH(diff / 2, 0, height.toDouble(), height.toDouble());
+    } else {
+      // 세로가 더 긴 경우
+      double diff = (height - width).toDouble(); // int를 double로 변환
+      return Rect.fromLTWH(0, diff / 2, width.toDouble(), width.toDouble());
     }
   }
 
@@ -160,7 +283,47 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     }
   }
 
-  // 📌 사진의 GPS 좌표 추출 후 지도에 마커 추가 (로직 반전)
+  // 📌 EXIF 회전 정보 추출
+  Future<int> _getExifOrientation(File imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final data = await readExifFromBytes(bytes);
+
+      if (data.containsKey('Image Orientation')) {
+        final orientationTag = data['Image Orientation']!;
+
+        // 방법 1: values에서 추출 시도
+        if (orientationTag.values != null) {
+          final valuesList = orientationTag.values.toList();
+          if (valuesList.isNotEmpty) {
+            return valuesList[0];
+          }
+        }
+
+        // 방법 2: printable에서 추출 시도
+        if (orientationTag.printable != null && orientationTag.printable.isNotEmpty) {
+          try {
+            final printableStr = orientationTag.printable;
+            // 숫자만 추출
+            final match = RegExp(r'(\d+)').firstMatch(printableStr);
+            if (match != null) {
+              return int.parse(match.group(1)!);
+            }
+          } catch (e) {
+            debugPrint("방향 값 파싱 오류: $e");
+          }
+        }
+      }
+
+      // 기본값 (회전 없음)
+      return 1;
+    } catch (e) {
+      debugPrint("EXIF 방향 정보 추출 오류: $e");
+      return 1; // 오류 시 기본값
+    }
+  }
+
+  // 📌 사진의 GPS 좌표 추출 후 지도에 마커 추가
   Future<void> _extractLocationAndAddMarker(File imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();
@@ -170,23 +333,85 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
         final lat = _convertToDecimal(data['GPS GPSLatitude']!.values.toList(), data['GPS GPSLatitudeRef']?.printable ?? "N");
         final lon = _convertToDecimal(data['GPS GPSLongitude']!.values.toList(), data['GPS GPSLongitudeRef']?.printable ?? "E");
 
-        Uint8List resizedPhoto = await _resizeImage(imageFile, 150);
-        String? countryName = await _getCountryFromCoordinates(lat, lon);
+        // 1. EXIF 방향 정보 가져오기
+        int orientation = await _getExifOrientation(imageFile);
+        debugPrint("📸 사진 방향 정보: $orientation");
 
-        // 사진 정보 저장
-        photoLocations.add({
-          "latitude": lat,
-          "longitude": lon,
-          "image": resizedPhoto,
-        });
+        // 2. 직접 이미지 디코딩 및 처리
+        final rawBytes = await imageFile.readAsBytes();
+        img.Image? originalImage = img.decodeImage(rawBytes);
 
-        // 📌 확대/축소 수준에 따라 마커 표시 결정 (로직 반전)
-        if (currentZoomLevel > 4.0) {
-          // 확대 상태일 때는 사진 마커만 추가
-          await _addMarkerToMap(lat, lon, resizedPhoto, 0.1, isPhoto: true);
+        if (originalImage == null) {
+          throw Exception("이미지 디코딩 실패");
         }
 
-        // 📌 국기 이미지 다운로드 및 저장
+        // 3. 방향에 따른 회전 적용
+        img.Image processedImage;
+        switch (orientation) {
+          case 1: // 정상
+            processedImage = originalImage;
+            break;
+          case 3: // 180도 회전
+            processedImage = img.copyRotate(originalImage, angle: 180);
+            break;
+          case 6: // 시계 방향으로 90도 (세로 사진의 가장 일반적인 케이스)
+            processedImage = img.copyRotate(originalImage, angle: 90);
+            break;
+          case 8: // 시계 반대 방향으로 90도
+            processedImage = img.copyRotate(originalImage, angle: 270);
+            break;
+          default:
+            processedImage = originalImage;
+        }
+
+        // 4. 크기 조정 (300픽셀 너비로)
+        int targetWidth = 300;
+        int targetHeight = (processedImage.height * targetWidth ~/ processedImage.width);
+        img.Image resizedImage = img.copyResize(
+            processedImage,
+            width: targetWidth,
+            height: targetHeight,
+            interpolation: img.Interpolation.average
+        );
+
+        // 5. 최종 이미지를 바이트 배열로 변환
+        Uint8List finalImageBytes = Uint8List.fromList(img.encodePng(resizedImage));
+
+        // 6. 위치 문자열 생성 (그룹화 키)
+        String locationKey = _locationToString(lat, lon);
+
+        // 7. 위치별 사진 그룹화
+        if (!photoLocationGroups.containsKey(locationKey)) {
+          photoLocationGroups[locationKey] = [];
+        }
+
+        // 8. 새 사진 정보 추가
+        photoLocationGroups[locationKey]!.add({
+          "latitude": lat,
+          "longitude": lon,
+          "image": finalImageBytes,
+          "timestamp": DateTime.now().millisecondsSinceEpoch, // 시간 정보 추가
+        });
+
+        // 9. 기존 사진 마커 삭제 후 재생성
+        if (currentZoomLevel > 4.0) {
+          // 모든 사진 마커 삭제
+          for (var marker in List.from(photoMarkers)) {
+            try {
+              await photoAnnotationManager!.delete(marker);
+              photoMarkers.remove(marker);
+            } catch (e) {
+              debugPrint("마커 삭제 오류: $e");
+            }
+          }
+
+          // 마커 다시 생성
+          await _addPhotoMarkersToMap();
+        }
+
+        // 국가 정보 가져오기
+        String? countryName = await _getCountryFromCoordinates(lat, lon);
+
         if (countryName != null && countryData.containsKey(countryName)) {
           String flagUrl = countryData[countryName]!["flagUrl"];
           double flagLat = countryData[countryName]!["latitude"];
@@ -194,23 +419,20 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
 
           Uint8List? flagImage = await _downloadImage(flagUrl);
           if (flagImage != null) {
-            // 국기 이미지를 메모리에 캐시
             countryData[countryName]!["flagImage"] = flagImage;
-
-            // 축소 상태일 때는 국기 마커만 추가
             if (currentZoomLevel <= 4.0) {
               await _addMarkerToMap(flagLat, flagLon, flagImage, 0.3, isPhoto: false);
             }
           }
         }
 
-        // 성공적으로 마커 추가 후 카메라 이동
+        // 지도 이동
         mapboxMap.flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lon, lat)),
             zoom: currentZoomLevel,
           ),
-          MapAnimationOptions(duration: 1000), // 1초 = 1000ms (int 타입)
+          MapAnimationOptions(duration: 1000),
         );
       } else {
         debugPrint("❌ 사진에 위치 정보 없음");
@@ -226,7 +448,7 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
     }
   }
 
-  // 📌 지도에 마커 추가 (국기와 사진 별도 관리)
+  // 📌 지도에 마커 추가 (국기용)
   Future<void> _addMarkerToMap(double lat, double lon, Uint8List imageData, double size, {required bool isPhoto}) async {
     // 사진용 어노테이션 매니저와 국기용 어노테이션 매니저를 별도로 생성
     if (photoAnnotationManager == null) {
@@ -280,12 +502,6 @@ class _MapScreenPageState extends State<MyMapScreenPage> with AutomaticKeepAlive
       debugPrint("❌ 나라 검색 오류: $e");
     }
     return null;
-  }
-
-  // 📌 사진 크기 조정 함수
-  Future<Uint8List> _resizeImage(File imageFile, int width) async {
-    Uint8List imageData = await imageFile.readAsBytes();
-    return imageData;
   }
 
   // 📌 위도/경도 변환 함수
