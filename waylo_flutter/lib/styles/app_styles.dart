@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
+// class AppColors {
+//   static const Color primary = Color(0xFF97DCF1);
+// }
+
 class AppColors {
-  // 기존 Color 타입 유지 (일반 UI 요소에서 사용)
   static const Color primary = Color(0xFF97DCF1);
   static const Color secondary = Color(0xFFFFC107);
   static const Color background = Color(0xFFF5F5F5);
 
-  // MaterialColor 변환 함수 추가 (primarySwatch에서 사용)
   static MaterialColor get primarySwatch => createMaterialColor(primary);
 
   static MaterialColor createMaterialColor(Color color) {
