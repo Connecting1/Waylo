@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:waylo_flutter/screens/auth/sign_in.dart';
 import '../../providers/sign_up_provider.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
+import '../../services/api/api_service.dart';
 import '../main/main_tab.dart';
 import '../../styles/app_styles.dart';
+import '../../services/data_loading_manager.dart'; // 데이터 로딩 매니저 추가
 
 class SignUpPhoneVerificationPage extends StatefulWidget {
   const SignUpPhoneVerificationPage({Key? key}) : super(key: key);
@@ -20,7 +23,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
   bool _isCodeSent = false;
   bool _isVerified = false;
   bool _isPhoneValid = false;
-  bool _isLoading = false; // API 요청 중 로딩 상태
+  bool _isLoading = false;
 
   void _onPhoneChanged(String value) {
     setState(() {
@@ -64,60 +67,112 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
 
     final provider = Provider.of<SignUpProvider>(context, listen: false);
 
-    print("🚀 회원가입 요청 데이터:");
-    print("📧 Email: ${provider.email}");
-    print("🔑 Password: ${provider.password}");
-    print("🧑‍🦰 Gender: ${provider.gender}");
-    print("👤 Username: ${provider.username}");
-    print("📱 Phone Number: ${provider.phoneNumber}");
-    print("🌍 Provider: ${provider.provider}"); // 여기서 google이 맞는지 확인
-
-    // API 요청 시작 (로딩 상태 적용)
     setState(() {
       _isLoading = true;
     });
 
-    final response = await UserApi.createUser(
-      email: provider.email,
-      password: provider.password,
-      gender: provider.gender,
-      username: provider.username,
-      phoneNumber: provider.phoneNumber,
-      provider: provider.provider,
-    );
-
-    print("🟡 회원가입 API 응답: $response");
-
-    setState(() {
-      _isLoading = false; // API 요청 완료 후 로딩 해제
-    });
-
-    if (response.containsKey("error")) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ 회원가입 실패: ${response["error"]}")),
+    try {
+      final response = await UserApi.createUser(
+        email: provider.email,
+        password: provider.password,
+        gender: provider.gender,
+        username: provider.username,
+        phoneNumber: provider.phoneNumber,
+        provider: provider.provider,
       );
-    } else {
-      provider.setLoggedIn(true);
-      provider.setAuthToken(response["auth_token"] ?? "");
 
-      SharedPreferences prefs = await SharedPreferences.getInstance();
-      if (response.containsKey("id")) {
-        await prefs.setString("user_id", response["id"]);
-        print("✅ 회원가입 후 user_id 저장 완료: ${response["id"]}");
+      if (response.containsKey("error")) {
+        setState(() {
+          _isLoading = false;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("[ERROR] 회원가입 실패: ${response["error"]}")),
+        );
       } else {
-        print("❌ 회원가입 응답에 id 없음");
+        // 회원가입 성공 - 이제 자동 로그인 시도
+
+        try {
+          // 회원가입에 사용한 이메일과 비밀번호로 로그인 시도
+          final loginResponse = await UserApi.loginUser(
+              provider.email,
+              provider.password ?? ""  // password가 null일 수 있으므로 빈 문자열로 대체
+          );
+
+          if (loginResponse.containsKey("auth_token")) {
+            // 로그인 성공 및 토큰 저장
+            String token = loginResponse["auth_token"];
+
+            await provider.setAuthToken(token);
+
+            SharedPreferences prefs = await SharedPreferences.getInstance();
+            if (loginResponse.containsKey("user_id")) {
+              await prefs.setString("user_id", loginResponse["user_id"]);
+            }
+
+            // 저장 확인
+            String? savedToken = await ApiService.getAuthToken();
+            String? savedUserId = await ApiService.getUserId();
+
+            // 데이터 로딩 매니저를 통해 앱 데이터 초기화
+            await DataLoadingManager.handleLoginSuccess(context);
+
+            setState(() {
+              _isLoading = false;
+            });
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("회원가입 및 로그인 성공!")),
+            );
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainTabPage()),
+            );
+          } else {
+
+            setState(() {
+              _isLoading = false;
+            });
+
+            // 로그인 실패 시 사용자에게 알리고 로그인 화면으로 이동
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("회원가입은 성공했지만 자동 로그인에 실패했습니다. 로그인해주세요.")),
+            );
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => SignInPage()),
+            );
+          }
+        } catch (loginError) {
+          print("[ERROR] 자동 로그인 중 오류 발생: $loginError");
+
+          setState(() {
+            _isLoading = false;
+          });
+
+          // 로그인 오류 시 사용자에게 알리고 로그인 화면으로 이동
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("회원가입은 성공했지만 로그인에 실패했습니다. 로그인해주세요.")),
+          );
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => SignInPage()),
+          );
+        }
       }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+
+      print("[ERROR] 회원가입 요청 중 예외 발생: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("✅ 회원가입 성공!")),
+        SnackBar(content: Text("[ERROR] 네트워크 오류: 회원가입할 수 없습니다.")),
       );
-
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MainTabPage()),
-      );
-      print("✅ 회원가입 성공!"); // 콘솔 로그 확인용
-
     }
   }
 
@@ -192,13 +247,13 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                     width: 100,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _isLoading ? null : _handleFinalSignUp, // API 요청 중이면 버튼 비활성화
+                      onPressed: _isLoading ? null : _handleFinalSignUp,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: _isLoading ? Colors.grey : Colors.white, // 로딩 중이면 회색
+                        backgroundColor: _isLoading ? Colors.grey : Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
                       child: _isLoading
-                          ? const CircularProgressIndicator() // 로딩 표시 추가
+                          ? const CircularProgressIndicator()
                           : const Text("Next", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
                     ),
                   ),

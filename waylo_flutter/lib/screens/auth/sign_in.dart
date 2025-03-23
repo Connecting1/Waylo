@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../providers/canvas_provider.dart';
 import '../../providers/sign_up_provider.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
+import 'package:waylo_flutter/services/api/api_service.dart';
+import 'package:waylo_flutter/services/data_loading_manager.dart'; // 추가: 데이터 로딩 매니저
+import '../../providers/user_provider.dart';
+import '../../providers/widget_provider.dart';
 import '../main/main_tab.dart';
 import '../../styles/app_styles.dart';
 
@@ -23,48 +28,57 @@ class _SignInPageState extends State<SignInPage> {
     final password = _passwordController.text.trim();
     final provider = Provider.of<SignUpProvider>(context, listen: false);
 
-    print("🔵 로그인 요청 시작: email=$email, password=$password");
+    // 로그인 전에 현재 저장된 user_id가 있는지 확인
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? oldUserId = prefs.getString("user_id");
 
     setState(() { _isLoading = true; });
 
     try {
       final response = await UserApi.loginUser(email, password);
 
-      print("🟡 로그인 응답: $response"); // 응답 확인
-
-      setState(() { _isLoading = false; });
-
       if (response.containsKey("auth_token")) { // 로그인 성공
         provider.setAuthToken(response["auth_token"]);
         provider.setLoggedIn(true);
 
-        SharedPreferences prefs = await SharedPreferences.getInstance();
         if (response.containsKey("user_id")) {
           await prefs.setString("user_id", response["user_id"]);
-          print("✅ user_id 저장 완료: ${response["user_id"]}");
         } else {
-          print("❌ user_id 없음");
+          print("[ERROR] user_id 없음");
         }
 
-        print("✅ 로그인 성공, 메인 화면으로 이동");
+        // Provider 상태 확인
+        final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
+        final userProvider = Provider.of<UserProvider>(context, listen: false);
+        final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
+
+        // 로그인 성공 후 데이터 로딩 매니저를 통해 데이터 초기화
+        await DataLoadingManager.handleLoginSuccess(context);
+
+        // API에서 사용할 user_id 확인
+        String? apiUserId = await ApiService.getUserId();
+
+        setState(() { _isLoading = false; });
 
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MainTabPage()),
         );
-      } else { // ❌ 로그인 실패
-        print("❌ 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호"}");
+      } else { // 로그인 실패
+        setState(() { _isLoading = false; });
+
+        print("[ERROR] 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호"}");
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("❌ 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호입니다."}")),
+          SnackBar(content: Text("[ERROR] 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호입니다."}")),
         );
       }
     } catch (e) {
-      setState(() { _isLoading = false; }); // 예외 발생 시 로딩 해제
-      print("❌ 로그인 요청 중 예외 발생: $e");
+      setState(() { _isLoading = false; });
+      print("[ERROR] 로그인 요청 중 예외 발생: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("❌ 네트워크 오류: 로그인할 수 없습니다.")),
+        SnackBar(content: Text("[ERROR] 네트워크 오류: 로그인할 수 없습니다.")),
       );
     }
   }
@@ -99,7 +113,7 @@ class _SignInPageState extends State<SignInPage> {
                 width: 100,
                 height: 50,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSignIn, // 로그인 요청
+                  onPressed: _isLoading ? null : _handleSignIn,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
