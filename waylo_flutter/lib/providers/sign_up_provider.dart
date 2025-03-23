@@ -56,7 +56,7 @@ class SignUpProvider extends ChangeNotifier {
     _provider = provider;
     notifyListeners();
   }
-  
+
 
   Future<void> setAuthToken(String token) async { // SharedPreferences에 저장
     _authToken = token;
