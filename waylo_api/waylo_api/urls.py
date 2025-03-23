@@ -4,12 +4,14 @@ from django.contrib import admin
 from django.urls import path, include
 
 urlpatterns = [
-    path('admin/', admin.site.urls),  # Django Admin
-    path('api/users/', include('users.urls')),  # users API 통합
-    path('api/albums/', include('albums.urls')),  # albums API 통합
-    path('api/albums/', include('widgets.urls')),
+    path('admin/', admin.site.urls),
+    path('api/users/', include('users.urls')),
+    path('api/albums/', include('albums.urls')),
+    path('api/widgets/', include('widgets.urls')),
+    path('api/friends/', include('friends.urls')),
+    path('api/feeds/', include('feeds.urls')),
+    path('api/chats/', include('chats.urls')),
 ]
 
-# ✅ 미디어 파일 제공 (DEBUG=True일 때만 적용됨)
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

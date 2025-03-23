@@ -39,22 +39,50 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework.authtoken',
     'users',
     'albums',
     'widgets',
     'feeds',
     'friends',
+    'chats',
+    'django.contrib.gis',
 ]
+
+# REST_FRAMEWORK = {
+#     'DEFAULT_AUTHENTICATION_CLASSES': [
+#         # 'rest_framework.authentication.TokenAuthentication',
+#         'users.authentication.CustomTokenAuthentication',
+#     ],
+# }
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'users.authentication.CustomTokenAuthentication',
     ),
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_PARSER_CLASSES': [
+        'rest_framework.parsers.JSONParser',
+        'rest_framework.parsers.FormParser',
+        'rest_framework.parsers.MultiPartParser'
+    ],
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+        'rest_framework.renderers.BrowsableAPIRenderer',
+    ],
+    'UNICODE_JSON': True,
+    'COMPACT_JSON': False,
 }
+
+GDAL_LIBRARY_PATH = r'C:\OSGeo4W\bin\gdal310.dll'  # 버전에 맞게 수정하세요
+GEOS_LIBRARY_PATH = r'C:\OSGeo4W\bin\geos_c.dll'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -88,16 +116,20 @@ WSGI_APPLICATION = 'waylo_api.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql',
+        'ENGINE': 'django.contrib.gis.db.backends.postgis',
         'NAME': 'waylo_db',  # PostgreSQL에 만든 DB 이름
         'USER': 'waylo_owner',  # PostgreSQL 사용자명
         'PASSWORD': 'waylo123',  # PostgreSQL 비밀번호
         'HOST': 'localhost',  # 로컬에서 실행
         'PORT': '5432',  # PostgreSQL 기본 포트
+        'OPTIONS': {
+            'client_encoding': 'UTF8',
+        },
     }
 }
 
 AUTH_USER_MODEL = "users.User"
+
 
 
 # Password validation
@@ -122,13 +154,17 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'ko-kr'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Seoul'
 
 USE_I18N = True
 
+USE_L10N = True
+
 USE_TZ = True
+
+
 
 
 # Static files (CSS, JavaScript, Images)
