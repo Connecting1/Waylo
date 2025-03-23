@@ -8,9 +8,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = '__all__'  # 모든 필드를 포함
+        fields = '__all__'
 
 
     def create(self, validated_data):
-        user = User.objects.create_user(**validated_data)  # create_user() 사용
+        user = User.objects.create_user(**validated_data)
         return user

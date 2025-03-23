@@ -5,7 +5,6 @@ import uuid
 class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
-    # password = models.TextField(null=True, blank=True)
     gender = models.CharField(max_length=20, choices=[
         ('male', 'Male'),
         ('female', 'Female'),
