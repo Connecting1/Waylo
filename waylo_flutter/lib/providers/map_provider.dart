@@ -1,17 +1,16 @@
-// lib/providers/map_provider.dart
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:waylo_flutter/models/feed.dart';
 
+/// 지도의 위치, 줌 레벨 및 위치 권한을 관리하는 Provider
 class MapProvider extends ChangeNotifier {
-  double _latitude = 0;
-  double _longitude = 0;
-  double _zoom = 15.0;
-  bool _isLocationPermissionGranted = false;
-  bool _isLoadingLocation = false;
-  String _errorMessage = '';
+  double _latitude = 0;                                 // 현재 지도 중심 위도
+  double _longitude = 0;                                // 현재 지도 중심 경도
+  double _zoom = 15.0;                                  // 지도 줌 레벨
+  bool _isLocationPermissionGranted = false;            // 위치 권한 승인 여부
+  bool _isLoadingLocation = false;                      // 위치 로딩 상태
+  String _errorMessage = '';                            // 에러 메시지
 
-  // Getters
   double get latitude => _latitude;
   double get longitude => _longitude;
   double get zoom => _zoom;
@@ -19,7 +18,7 @@ class MapProvider extends ChangeNotifier {
   bool get isLoadingLocation => _isLoadingLocation;
   String get errorMessage => _errorMessage;
 
-  // 위치 권한 체크 및 현재 위치 얻기
+  /// 위치 권한 확인 및 요청
   Future<bool> checkLocationPermission() async {
     _isLoadingLocation = true;
     _errorMessage = '';
@@ -57,7 +56,7 @@ class MapProvider extends ChangeNotifier {
     }
   }
 
-  // 현재 위치 가져오기
+  /// 현재 위치 가져오기
   Future<bool> getCurrentLocation() async {
     _isLoadingLocation = true;
     _errorMessage = '';
@@ -86,7 +85,7 @@ class MapProvider extends ChangeNotifier {
     }
   }
 
-  // 지도 위치 및 줌 수동 설정
+  /// 지도 위치 및 줌 레벨 수동 설정
   void setMapPosition(double latitude, double longitude, {double? zoom}) {
     _latitude = latitude;
     _longitude = longitude;
@@ -94,7 +93,7 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 선택한 피드로 지도 이동하기
+  /// 선택한 피드 위치로 지도 중심 이동
   void centerMapOnFeed(Feed feed, {double? zoom}) {
     _latitude = feed.latitude;
     _longitude = feed.longitude;
@@ -102,13 +101,13 @@ class MapProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 지도 줌 설정
+  /// 지도 줌 레벨 설정
   void setZoom(double zoom) {
     _zoom = zoom;
     notifyListeners();
   }
 
-  // 상태 초기화
+  /// Provider 상태 초기화
   void reset() {
     _latitude = 0;
     _longitude = 0;

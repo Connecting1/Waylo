@@ -1,4 +1,3 @@
-// lib/services/api/api_service.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -9,19 +8,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 class ApiService {
   static const String baseUrl = "http://192.168.0.6:8000";
 
-  // SharedPreferences에서 user_id 가져오기 (모든 API에서 사용)
+  /// SharedPreferences에서 사용자 ID 가져오기
   static Future<String?> getUserId() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString("user_id");
   }
 
-  // 인증 토큰 가져오기
+  /// 인증 토큰 가져오기
   static Future<String?> getAuthToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString("auth_token");
   }
 
-  // 공통 HTTP 요청 핸들러 (GET, POST, PATCH) - 동적 반환 타입으로 수정
+  /// HTTP 요청 처리 (GET, POST, PATCH, DELETE)
   static Future<dynamic> sendRequest({
     required String endpoint,
     String method = "GET",
@@ -29,30 +28,22 @@ class ApiService {
     File? file,
   }) async {
     final url = Uri.parse("$baseUrl$endpoint");
-    print("API 요청: $method $url");
-    if (body != null) {
-      print("요청 본문: $body");
-    }
 
     try {
-      // 인증 토큰 가져오기
       String? authToken = await getAuthToken();
       Map<String, String> headers = {
         "Content-Type": "application/json",
       };
 
-      // 인증 토큰이 있으면 헤더에 추가
       if (authToken != null && authToken.isNotEmpty) {
         headers["Authorization"] = "Token $authToken";
       }
 
       http.Response response;
 
-      // 파일이 있는 경우 MultipartRequest 사용
       if (file != null && (method == "POST" || method == "PATCH")) {
         var request = http.MultipartRequest(method, url);
 
-        // 인증 토큰 헤더 추가
         if (authToken != null && authToken.isNotEmpty) {
           request.headers["Authorization"] = "Token $authToken";
         }
@@ -65,7 +56,6 @@ class ApiService {
           });
         }
 
-        // 중요: 서버에서 기대하는 'image' 필드명으로 파일 추가
         request.files.add(
           await http.MultipartFile.fromPath("image", file.path, filename: basename(file.path)),
         );
@@ -87,7 +77,6 @@ class ApiService {
           body: jsonEncode(body),
         );
       } else if (method == "DELETE") {
-        // DELETE 메서드 처리 추가
         response = await http.delete(
           url,
           headers: headers,
@@ -97,42 +86,36 @@ class ApiService {
         return {"error": "Invalid HTTP method"};
       }
 
-
       if (response.statusCode >= 200 && response.statusCode < 300) {
         if (response.body.isEmpty) {
           return {"message": "Success"};
         }
 
-        // UTF-8 인코딩 확인 및 처리
         try {
-          // JSON 응답 파싱 - 리스트 또는 맵 모두 처리 가능하게 변경
           final dynamic decoded = jsonDecode(utf8.decode(response.bodyBytes));
           return decoded;
         } catch (e) {
-          print("[ERROR] JSON 파싱 오류: $e");
-          return {"error": "응답 데이터 파싱 오류"};
+          return {"error": "Response parsing failed"};
         }
       } else {
-        // 오류 응답에도 UTF-8 디코딩 적용
         try {
           final errorBody = utf8.decode(response.bodyBytes);
           return {"error": errorBody};
         } catch (e) {
-          return {"error": "오류 응답 처리 실패"};
+          return {"error": "Error response parsing failed"};
         }
       }
     } catch (e) {
-      print("[ERROR] API 요청 실패 상세 내용: $e");
       if (e is SocketException) {
-        return {"error": "네트워크 연결 실패: ${e.message}"};
+        return {"error": "Network connection failed: ${e.message}"};
       } else if (e is HttpException) {
-        return {"error": "HTTP 요청 실패: ${e.message}"};
+        return {"error": "HTTP request failed: ${e.message}"};
       } else if (e is FormatException) {
-        return {"error": "응답 형식 오류: ${e.message}"};
+        return {"error": "Response format error: ${e.message}"};
       } else if (e is TimeoutException) {
-        return {"error": "요청 시간 초과"};
+        return {"error": "Request timeout"};
       } else {
-        return {"error": "Request Failed: ${e.toString()}"};
+        return {"error": "Request failed: ${e.toString()}"};
       }
     }
   }

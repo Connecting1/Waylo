@@ -1,10 +1,8 @@
-// lib/services/api/user_api.dart
-
 import 'dart:io';
 import 'api_service.dart';
 
 class UserApi {
-  // 회원가입
+  /// 회원가입
   static Future<Map<String, dynamic>> createUser({
     required String email,
     required String? password,
@@ -29,7 +27,7 @@ class UserApi {
     );
   }
 
-  // 로그인
+  /// 로그인
   static Future<Map<String, dynamic>> loginUser(String email, String password) async {
     return await ApiService.sendRequest(
       endpoint: "/api/users/login/",
@@ -38,14 +36,14 @@ class UserApi {
     );
   }
 
-  // 유저 정보 가져오기 (GET)
+  /// 사용자 정보 가져오기
   static Future<Map<String, dynamic>> fetchUserInfo() async {
     String? userId = await ApiService.getUserId();
     if (userId == null) return {"error": "No User Logged In"};
     return await ApiService.sendRequest(endpoint: "/api/users/$userId/");
   }
 
-  // 유저 정보 수정 (PATCH)
+  /// 사용자 정보 수정
   static Future<Map<String, dynamic>> updateUserInfo({
     required String userId,
     String? username,
@@ -69,7 +67,7 @@ class UserApi {
     );
   }
 
-  // 프로필 이미지만 업데이트 (PATCH)
+  /// 프로필 이미지 업데이트
   static Future<Map<String, dynamic>> updateProfileImage({
     required String userId,
     required File profileImage,
@@ -81,6 +79,7 @@ class UserApi {
     );
   }
 
+  /// 사용자 검색
   static Future<dynamic> searchUsers(String prefix) async {
     return await ApiService.sendRequest(
       endpoint: "/api/users/search/?prefix=$prefix",
@@ -88,6 +87,3 @@ class UserApi {
     );
   }
 }
-
-
-

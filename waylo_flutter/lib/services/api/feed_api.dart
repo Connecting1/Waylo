@@ -1,9 +1,8 @@
-// lib/services/api/feed_api.dart
 import 'dart:io';
 import 'api_service.dart';
 
 class FeedApi {
-  // 피드 목록 가져오기
+  /// 피드 목록 가져오기
   static Future<dynamic> fetchFeeds({int page = 1, int limit = 10}) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/?page=$page&limit=$limit",
@@ -11,7 +10,7 @@ class FeedApi {
     );
   }
 
-  // 특정 피드 상세 정보 가져오기
+  /// 특정 피드 상세 정보 가져오기
   static Future<Map<String, dynamic>> fetchFeedDetail(String feedId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/",
@@ -19,7 +18,7 @@ class FeedApi {
     );
   }
 
-  // 새 피드 생성하기
+  /// 새 피드 생성
   static Future<Map<String, dynamic>> createFeed({
     required double latitude,
     required double longitude,
@@ -53,13 +52,13 @@ class FeedApi {
 
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/create/",
-      method: "POST",  // PATCH에서 POST로 변경
+      method: "POST",
       body: body,
       file: image,
     );
   }
 
-  // 피드 수정하기
+  /// 피드 수정
   static Future<Map<String, dynamic>> updateFeed({
     required String feedId,
     String? description,
@@ -97,7 +96,6 @@ class FeedApi {
       body["photo_taken_at"] = photoTakenAt;
     }
 
-    // 중요한 변경: extraData를 개별 필드가 아닌 extra_data 객체로 추가
     if (extraData != null) {
       body["extra_data"] = extraData;
     }
@@ -110,7 +108,7 @@ class FeedApi {
     );
   }
 
-  // 피드 삭제하기
+  /// 피드 삭제
   static Future<Map<String, dynamic>> deleteFeed(String feedId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/delete/",
@@ -118,7 +116,7 @@ class FeedApi {
     );
   }
 
-  // 친구들 피드 가져오기
+  /// 친구들 피드 가져오기
   static Future<dynamic> fetchFriendsFeeds({int page = 1, int limit = 10}) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/friends/?page=$page&limit=$limit",
@@ -126,7 +124,7 @@ class FeedApi {
     );
   }
 
-  // 주변 피드 가져오기
+  /// 주변 피드 가져오기
   static Future<dynamic> fetchNearbyFeeds({
     required double latitude,
     required double longitude,
@@ -140,7 +138,7 @@ class FeedApi {
     );
   }
 
-  // 특정 사용자의 피드 가져오기
+  /// 특정 사용자의 피드 가져오기
   static Future<dynamic> fetchUserFeeds(String userId, {int page = 1, int limit = 100}) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/user/$userId/?page=$page&limit=$limit",
@@ -148,7 +146,7 @@ class FeedApi {
     );
   }
 
-  // 북마크한 피드 가져오기
+  /// 북마크한 피드 가져오기
   static Future<dynamic> fetchBookmarkedFeeds({int page = 1, int limit = 10}) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/bookmarked/?page=$page&limit=$limit",
@@ -156,7 +154,7 @@ class FeedApi {
     );
   }
 
-  // 피드 좋아요
+  /// 피드 좋아요
   static Future<Map<String, dynamic>> likeFeed(String feedId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/like/",
@@ -164,7 +162,7 @@ class FeedApi {
     );
   }
 
-  // 피드 좋아요 취소
+  /// 피드 좋아요 취소
   static Future<Map<String, dynamic>> unlikeFeed(String feedId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/unlike/",
@@ -172,7 +170,7 @@ class FeedApi {
     );
   }
 
-  // 피드 북마크
+  /// 피드 북마크
   static Future<Map<String, dynamic>> bookmarkFeed(String feedId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/bookmark/",
@@ -180,7 +178,7 @@ class FeedApi {
     );
   }
 
-  // 피드 북마크 취소
+  /// 피드 북마크 취소
   static Future<Map<String, dynamic>> unbookmarkFeed(String feedId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/unbookmark/",
@@ -188,7 +186,7 @@ class FeedApi {
     );
   }
 
-  // 피드 댓글 목록 가져오기
+  /// 피드 댓글 목록 가져오기
   static Future<dynamic> fetchFeedComments(String feedId, {int page = 1, int limit = 20}) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/comments/?page=$page&limit=$limit",
@@ -196,15 +194,14 @@ class FeedApi {
     );
   }
 
-  // 댓글 작성하기
+  /// 댓글 작성
   static Future<Map<String, dynamic>> createComment(
       String feedId,
       String content,
-      {String? parentId} // 추가: 부모 댓글 ID (대댓글 작성 시)
+      {String? parentId}
       ) async {
     Map<String, dynamic> body = {"content": content};
 
-    // 부모 댓글 ID가 있는 경우 (대댓글)
     if (parentId != null) {
       body["parent_id"] = parentId;
     }
@@ -216,7 +213,7 @@ class FeedApi {
     );
   }
 
-  // 댓글 삭제하기
+  /// 댓글 삭제
   static Future<Map<String, dynamic>> deleteComment(String commentId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/comment/$commentId/delete/",
@@ -224,7 +221,7 @@ class FeedApi {
     );
   }
 
-  // 댓글 좋아요
+  /// 댓글 좋아요
   static Future<Map<String, dynamic>> likeComment(String commentId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/comment/$commentId/like/",
@@ -232,7 +229,7 @@ class FeedApi {
     );
   }
 
-  // 댓글 좋아요 취소
+  /// 댓글 좋아요 취소
   static Future<Map<String, dynamic>> unlikeComment(String commentId) async {
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/comment/$commentId/unlike/",

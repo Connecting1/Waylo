@@ -1,4 +1,3 @@
-// lib/screen/auth/sign_up_birth_date.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -16,7 +15,7 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
   final TextEditingController _birthDateController = TextEditingController();
   bool _isBirthDateValid = false;
 
-  // 생년월일 선택 다이얼로그 띄우기
+  /// 생년월일 선택 다이얼로그 표시
   Future<void> _selectBirthDate(BuildContext context) async {
     DateTime? pickedDate = await showDatePicker(
       context: context,
@@ -36,11 +35,9 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
     }
   }
 
-  // 다음 페이지로 이동
+  /// 성별 선택 페이지로 이동
   Future<void> _goToGenderPage(BuildContext context) async {
     if (_isBirthDateValid) {
-      final password = Provider.of<SignUpProvider>(context, listen: false).password;
-
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const SignUpGenderPage()),
@@ -55,13 +52,8 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Create account",
@@ -72,7 +64,7 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56, // 기본 AppBar 높이
+        toolbarHeight: 56,
       ),
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20),
@@ -89,12 +81,12 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
             ),
             TextField(
               controller: _birthDateController,
-              readOnly: true, // 직접 입력 불가능, 선택만 가능하도록 변경
+              readOnly: true,
               style: const TextStyle(color: Colors.black),
               onTap: () => _selectBirthDate(context),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white, // 입력 필드 배경색
+                fillColor: Colors.white,
                 hintText: "YYYY-MM-DD",
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
@@ -107,10 +99,10 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
                 ),
               ),
             ),
-            const SizedBox(height: 30), // 버튼과 간격 추가
+            const SizedBox(height: 30),
             Center(
               child: SizedBox(
-                width: 100, // 버튼 크기 조정
+                width: 100,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isBirthDateValid ? () => _goToGenderPage(context) : null,

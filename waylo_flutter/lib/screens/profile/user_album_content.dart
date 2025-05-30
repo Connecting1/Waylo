@@ -63,7 +63,7 @@ class _UserAlbumContentWidgetState extends State<UserAlbumContentWidget> with Au
     } catch (e) {
       print("[ERROR] 사용자 앨범 데이터 로드 중 오류 발생: $e");
       setState(() {
-        _errorMessage = '앨범 데이터를 불러오는 중 오류가 발생했습니다.';
+        _errorMessage = 'An error occurred while loading album data.';
         _isLoading = false;
       });
     }
@@ -193,7 +193,7 @@ class _UserAlbumContentWidgetState extends State<UserAlbumContentWidget> with Au
             SizedBox(height: 24),
             ElevatedButton(
               onPressed: _loadUserAlbumData,
-              child: Text('다시 시도'),
+              child: Text('Retry'),
             ),
           ],
         ),
@@ -226,7 +226,7 @@ class _UserAlbumContentWidgetState extends State<UserAlbumContentWidget> with Au
                   Icon(Icons.view_module_outlined, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text(
-                    "${widget.username}님의 앨범에 위젯이 없습니다.",
+                    "${widget.username}'s album has no widgets.",
                     style: TextStyle(fontSize: 16, color: Colors.grey[700]),
                   ),
                 ],

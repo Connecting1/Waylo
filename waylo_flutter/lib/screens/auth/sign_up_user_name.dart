@@ -1,4 +1,3 @@
-// lib/screen/auth/sign_up_user_name.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -16,7 +15,7 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
   final TextEditingController _nickNameController = TextEditingController();
   bool _isNickNameValid = false;
 
-  // 이메일 유효성 검사 함수
+  /// 사용자명 유효성 검사
   void _validateNickName(String nickname) {
     final RegExp emailRegex = RegExp(
       r"^[a-zA-Z0-9](?!.*\.\.)(?!.*__)[a-zA-Z0-9._]{0,28}[a-zA-Z0-9]$",
@@ -27,7 +26,7 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
     });
   }
 
-  // 다음 페이지로 이동
+  /// 전화번호 인증 페이지로 이동
   Future<void> _goToPasswordPage(BuildContext context) async {
     if (_isNickNameValid) {
       Provider.of<SignUpProvider>(context, listen: false).setUsername(_nickNameController.text);
@@ -46,13 +45,8 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Create account",
@@ -63,9 +57,8 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56, // 기본 AppBar 높이
+        toolbarHeight: 56,
       ),
-
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20),
         child: Column(
@@ -81,11 +74,11 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
             ),
             TextField(
               controller: _nickNameController,
-              onChanged: _validateNickName, // 이메일 입력값이 변경될 때 유효성 검사 실행
+              onChanged: _validateNickName,
               style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white, // 입력 필드 배경색
+                fillColor: Colors.white,
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
@@ -98,24 +91,22 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
               ),
               keyboardType: TextInputType.text,
             ),
-            const SizedBox(height: 5), // 텍스트와 입력 필드 사이 간격 추가
-
-            // 닉네임 조건 텍스트 추가
+            const SizedBox(height: 5),
             Text(
               "• 1-30 characters\n• Can contain letters, numbers, '.' and '_'\n• Cannot start or end with '.' or '_'\nNo consecutive '..' (double periods)",
               style: TextStyle(
                 fontSize: 10,
-                color: Colors.white, // 닉네임 조건 텍스트는 항상 흰색 유지
+                color: Colors.white,
               ),
             ),
-            const SizedBox(height: 30), // 버튼과 간격 추가
+            const SizedBox(height: 30),
             Center(
               child: SizedBox(
-                width: 100, // 버튼 크기 조정
+                width: 100,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isNickNameValid ? () => _goToPasswordPage(context) : null,
-                  style: ButtonStyles.formButtonStyle(context, isEnabled: _isNickNameValid), // 👈 이렇게 변경
+                  style: ButtonStyles.formButtonStyle(context, isEnabled: _isNickNameValid),
                   child: const Text(
                     "Next",
                     style: TextStyle(

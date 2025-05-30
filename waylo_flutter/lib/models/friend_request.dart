@@ -1,12 +1,11 @@
-// lib/models/friend_request.dart
 import 'package:waylo_flutter/services/api/api_service.dart';
 
 class FriendRequest {
-  final String id;
-  final String fromUserId;
-  final String fromUserName;
-  final String fromUserProfileImage;
-  final DateTime createdAt;
+  final String id;                        // 친구 요청의 고유 식별자
+  final String fromUserId;               // 요청을 보낸 사용자 ID
+  final String fromUserName;             // 요청을 보낸 사용자명
+  final String fromUserProfileImage;     // 요청을 보낸 사용자의 프로필 이미지 URL
+  final DateTime createdAt;              // 생성 일시
 
   FriendRequest({
     required this.id,
@@ -28,14 +27,11 @@ class FriendRequest {
     );
   }
 
-  // 서버의 상대 경로를 전체 URL로 변환
   String get fullProfileImageUrl {
     if (fromUserProfileImage.isEmpty) return '';
 
-    // 이미 전체 URL인 경우
     if (fromUserProfileImage.startsWith('http')) return fromUserProfileImage;
 
-    // 상대 경로를 전체 URL로 변환 - ApiService.baseUrl 사용
     if (fromUserProfileImage.startsWith('/')) {
       return "${ApiService.baseUrl}$fromUserProfileImage";
     }

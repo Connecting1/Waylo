@@ -16,12 +16,14 @@ import 'screens/main/main_tab.dart';
 import 'services/data_loading_manager.dart';
 import '../../styles/app_styles.dart';
 
+/// 앱의 진입점 - 로그인 상태를 확인하고 앱을 시작합니다
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final bool isLoggedIn = await checkLoginStatus();
   runApp(WayloApp(isLoggedIn: isLoggedIn));
 }
 
+/// SharedPreferences에서 로그인 상태를 확인합니다
 Future<bool> checkLoginStatus() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getBool('is_logged_in') ?? false;
@@ -34,6 +36,7 @@ class WayloApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
+      // 앱 전역에서 사용할 모든 Provider들을 등록
       providers: [
         ChangeNotifierProvider(
           create: (_) {
@@ -55,7 +58,7 @@ class WayloApp extends StatelessWidget {
       child: Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return MaterialApp(
-              theme: themeProvider.currentTheme, // ThemeProvider의 현재 테마 사용
+              theme: themeProvider.currentTheme,
               home: isLoggedIn
                   ? AppInitializer(child: MainTabPage())
                   : SignUpStartPage(),
@@ -66,7 +69,7 @@ class WayloApp extends StatelessWidget {
   }
 }
 
-// 앱 초기화를 위한 위젯 추가
+/// 로그인된 사용자를 위한 앱 데이터 초기화 래퍼 위젯
 class AppInitializer extends StatefulWidget {
   final Widget child;
 
@@ -85,8 +88,8 @@ class _AppInitializerState extends State<AppInitializer> {
     _initializeData();
   }
 
+  /// 앱에 필요한 초기 데이터를 로드합니다
   Future<void> _initializeData() async {
-    // 데이터 로딩 매니저를 통해 앱 데이터 초기화
     await DataLoadingManager.initializeAppData(context);
 
     if (mounted) {
@@ -98,12 +101,10 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
-    // ThemeProvider 가져오기
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return _isLoading
         ? Scaffold(
-      // 다크 모드에 따른 배경색 적용
       backgroundColor: themeProvider.backgroundColor,
       body: Center(
         child: Column(
@@ -111,8 +112,10 @@ class _AppInitializerState extends State<AppInitializer> {
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            // 다크 모드에 따른 텍스트 색상 적용
-            Text("로딩 중...", style: TextStyle(fontSize: 16, color: themeProvider.textColor)),
+            Text(
+                "Loading...",
+                style: TextStyle(fontSize: 16, color: themeProvider.textColor)
+            ),
           ],
         ),
       ),

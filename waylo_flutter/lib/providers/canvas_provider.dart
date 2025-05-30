@@ -1,20 +1,19 @@
-// lib/providers/canvas_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/services/api/album_api.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
 
+/// 캔버스의 배경 설정을 관리하는 Provider
 class CanvasProvider extends ChangeNotifier {
-  Color _canvasColor = Colors.white;
-  String _canvasPattern = "none";
-  bool _isLoaded = false;
+  Color _canvasColor = Colors.white;        // 캔버스 배경색
+  String _canvasPattern = "none";           // 캔버스 배경 패턴
+  bool _isLoaded = false;                   // 데이터 로드 완료 여부
 
   Color get canvasColor => _canvasColor;
   String get canvasPattern => _canvasPattern;
   bool get isLoaded => _isLoaded;
 
-  // 앱 시작 시 호출할 초기화 메서드
+  /// 앱 시작 시 캔버스 설정 로드
   Future<void> loadCanvasSettings() async {
-    // 이미 로드된 경우 중복 로드 방지
     if (_isLoaded) return;
 
     try {
@@ -37,7 +36,7 @@ class CanvasProvider extends ChangeNotifier {
     }
   }
 
-  // 설정 업데이트 메서드
+  /// 캔버스 설정 업데이트 및 서버 저장
   Future<void> updateCanvasSettings(Color color, String pattern) async {
     _canvasColor = color;
     _canvasPattern = pattern;
@@ -57,11 +56,11 @@ class CanvasProvider extends ChangeNotifier {
         backgroundPattern: pattern,
       );
     } catch (e) {
-      print("[ERROR] 캔버스 설정 저장 실패: $e");
+      // 저장 실패 시 조용히 처리
     }
   }
 
-  // 헥스 변환 메서드
+  /// Hex 색상 문자열을 Color 객체로 변환
   Color _convertHexToColor(String hexColor) {
     hexColor = hexColor.toUpperCase().replaceAll("#", "");
     if (hexColor.length == 6) {
@@ -70,6 +69,7 @@ class CanvasProvider extends ChangeNotifier {
     return Color(int.parse(hexColor, radix: 16));
   }
 
+  /// Provider 상태 초기화
   void reset() {
     _canvasColor = Colors.white;
     _canvasPattern = "none";

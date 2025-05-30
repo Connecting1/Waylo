@@ -1,4 +1,3 @@
-// lib/screen/auth/sign_in.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -6,7 +5,7 @@ import '../../providers/canvas_provider.dart';
 import '../../providers/sign_up_provider.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
-import 'package:waylo_flutter/services/data_loading_manager.dart'; // 추가: 데이터 로딩 매니저
+import 'package:waylo_flutter/services/data_loading_manager.dart';
 import '../../providers/user_provider.dart';
 import '../../providers/widget_provider.dart';
 import '../main/main_tab.dart';
@@ -29,35 +28,24 @@ class _SignInPageState extends State<SignInPage> {
     final password = _passwordController.text.trim();
     final provider = Provider.of<SignUpProvider>(context, listen: false);
 
-    // 로그인 전에 현재 저장된 user_id가 있는지 확인
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? oldUserId = prefs.getString("user_id");
-
     setState(() { _isLoading = true; });
 
     try {
       final response = await UserApi.loginUser(email, password);
 
-      if (response.containsKey("auth_token")) { // 로그인 성공
+      if (response.containsKey("auth_token")) {
+        // 인증 토큰 설정
         provider.setAuthToken(response["auth_token"]);
         provider.setLoggedIn(true);
 
+        // 사용자 ID 저장
         if (response.containsKey("user_id")) {
+          SharedPreferences prefs = await SharedPreferences.getInstance();
           await prefs.setString("user_id", response["user_id"]);
-        } else {
-          print("[ERROR] user_id 없음");
         }
 
-        // Provider 상태 확인
-        final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
-        final userProvider = Provider.of<UserProvider>(context, listen: false);
-        final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
-
-        // 로그인 성공 후 데이터 로딩 매니저를 통해 데이터 초기화
+        // 로그인 성공 후 데이터 초기화
         await DataLoadingManager.handleLoginSuccess(context);
-
-        // API에서 사용할 user_id 확인
-        String? apiUserId = await ApiService.getUserId();
 
         setState(() { _isLoading = false; });
 
@@ -65,25 +53,22 @@ class _SignInPageState extends State<SignInPage> {
           context,
           MaterialPageRoute(builder: (context) => MainTabPage()),
         );
-      } else { // 로그인 실패
+      } else {
+        // 로그인 실패 처리
         setState(() { _isLoading = false; });
 
-        print("[ERROR] 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호"}");
-
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("[ERROR] 로그인 실패: ${response["error"] ?? "잘못된 이메일 또는 비밀번호입니다."}")),
+          SnackBar(content: Text("Login failed: ${response["error"] ?? "Invalid email or password"}")),
         );
       }
     } catch (e) {
       setState(() { _isLoading = false; });
-      print("[ERROR] 로그인 요청 중 예외 발생: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("[ERROR] 네트워크 오류: 로그인할 수 없습니다.")),
+        SnackBar(content: Text("Network error: Unable to login")),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -104,7 +89,7 @@ class _SignInPageState extends State<SignInPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Email", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-            TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Colors.black),decoration: _inputDecoration()),
+            TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Colors.black), decoration: _inputDecoration()),
             const SizedBox(height: 15),
             const Text("Password", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
             TextField(controller: _passwordController, obscureText: true, style: const TextStyle(color: Colors.black), decoration: _inputDecoration()),

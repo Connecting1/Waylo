@@ -1,4 +1,3 @@
-// lib/screen/feed/create_feed_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -9,14 +8,13 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
 import 'package:waylo_flutter/screens/map/map_location_picker.dart';
-
-import '../../providers/theme_provider.dart'; // Import the new component
+import '../../providers/theme_provider.dart';
 
 class FeedCreatePage extends StatefulWidget {
   final File imageFile;
   final double? initialLatitude;
   final double? initialLongitude;
-  final String? accessToken; // Mapbox 액세스 토큰
+  final String? accessToken;
 
   const FeedCreatePage({
     Key? key,
@@ -42,27 +40,27 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   double? _longitude;
   String? _locationName;
   String? _countryCode;
-  DateTime? _photoTakenAt; // 사진 촬영 날짜 추가
+  DateTime? _photoTakenAt;
 
   @override
   void initState() {
     super.initState();
     _loadLocationData();
-    _extractPhotoDateFromExif(); // EXIF에서 날짜 추출 시도
+    _extractPhotoDateFromExif();
   }
 
-  // EXIF에서 날짜 추출 시도 (Flutter 단에서 가능한 경우)
+  /// EXIF에서 사진 촬영 날짜 추출 시도
   Future<void> _extractPhotoDateFromExif() async {
     try {
       setState(() {
         _photoTakenAt = null;
       });
     } catch (e) {
-      print("EXIF 날짜 추출 오류: $e");
+      // EXIF 데이터 처리 오류는 조용히 처리
     }
   }
 
-  // 위치 정보 로드
+  /// 위치 정보 로드 및 초기화
   Future<void> _loadLocationData() async {
     setState(() {
       _isLocationLoading = true;
@@ -79,17 +77,13 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     });
   }
 
-  // 좌표에서 위치 이름과 국가 코드 가져오기
+  /// Mapbox API를 통해 좌표에서 위치 이름과 국가 코드 가져오기
   Future<void> _fetchLocationDetails(double latitude, double longitude) async {
     if (widget.accessToken == null) return;
 
     try {
-      // 국가 코드 가져오기 (우선순위)
       String countryUrl = "https://api.mapbox.com/geocoding/v5/mapbox.places/$longitude,$latitude.json?access_token=${widget.accessToken}&types=country";
       final countryResponse = await http.get(Uri.parse(countryUrl));
-
-      print("🌍 국가 코드 API 응답: ${countryResponse.statusCode}");
-      print("🌍 국가 코드 응답 본문: ${countryResponse.body}");
 
       if (countryResponse.statusCode == 200) {
         var data = jsonDecode(countryResponse.body);
@@ -99,27 +93,25 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
             _locationName = data["features"][0]["place_name"] ?? 'Unknown Location';
           });
         } else {
-          setState(() {
-            _countryCode = 'UNKNOWN';
-            _locationName = 'Unknown Location';
-          });
+          _setUnknownLocation();
         }
       } else {
-        setState(() {
-          _countryCode = 'UNKNOWN';
-          _locationName = 'Unknown Location';
-        });
+        _setUnknownLocation();
       }
     } catch (e) {
-      print("위치 정보 가져오기 오류: $e");
-      setState(() {
-        _countryCode = 'UNKNOWN';
-        _locationName = 'Unknown Location';
-      });
+      _setUnknownLocation();
     }
   }
 
-  // 위치 수정 - 새로운 지도 인터페이스 사용
+  /// 위치 정보를 알 수 없을 때 기본값 설정
+  void _setUnknownLocation() {
+    setState(() {
+      _countryCode = 'UNKNOWN';
+      _locationName = 'Unknown Location';
+    });
+  }
+
+  /// 지도에서 위치 선택
   void _editLocationOnMap() async {
     if (_latitude == null || _longitude == null || widget.accessToken == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -128,7 +120,6 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       return;
     }
 
-    // Navigate to the map location picker
     await Navigator.push(
       context,
       MaterialPageRoute(
@@ -146,7 +137,6 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
               }
             });
 
-            // Fetch additional location details if needed
             await _fetchLocationDetails(lat, lng);
 
             setState(() {
@@ -158,8 +148,8 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     );
   }
 
+  /// 좌표 직접 입력 다이얼로그
   void _editCoordinates() {
-    // 텍스트 컨트롤러 초기화
     final latController = TextEditingController(
       text: _latitude?.toStringAsFixed(6) ?? '',
     );
@@ -200,45 +190,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
               child: Text('Cancel'),
             ),
             TextButton(
-              onPressed: () async {
-                try {
-                  double lat = double.parse(latController.text);
-                  double lng = double.parse(lngController.text);
-
-                  // 유효성 검사
-                  if (lat < -90 || lat > 90) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Latitude must be between -90 and 90')),
-                    );
-                    return;
-                  }
-                  if (lng < -180 || lng > 180) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Longitude must be between -180 and 180')),
-                    );
-                    return;
-                  }
-
-                  Navigator.pop(context);
-
-                  setState(() {
-                    _latitude = lat;
-                    _longitude = lng;
-                    _isLocationLoading = true;
-                  });
-
-                  // 새 좌표의 위치 정보 가져오기
-                  await _fetchLocationDetails(lat, lng);
-
-                  setState(() {
-                    _isLocationLoading = false;
-                  });
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Invalid coordinate format')),
-                  );
-                }
-              },
+              onPressed: () => _saveCoordinates(latController.text, lngController.text),
               child: Text('Save'),
             ),
           ],
@@ -247,7 +199,46 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     );
   }
 
-  // 날짜 선택 다이얼로그 표시
+  /// 입력된 좌표 유효성 검사 및 저장
+  Future<void> _saveCoordinates(String latText, String lngText) async {
+    try {
+      double lat = double.parse(latText);
+      double lng = double.parse(lngText);
+
+      if (lat < -90 || lat > 90) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Latitude must be between -90 and 90')),
+        );
+        return;
+      }
+      if (lng < -180 || lng > 180) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Longitude must be between -180 and 180')),
+        );
+        return;
+      }
+
+      Navigator.pop(context);
+
+      setState(() {
+        _latitude = lat;
+        _longitude = lng;
+        _isLocationLoading = true;
+      });
+
+      await _fetchLocationDetails(lat, lng);
+
+      setState(() {
+        _isLocationLoading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Invalid coordinate format')),
+      );
+    }
+  }
+
+  /// 사진 촬영 날짜 선택 다이얼로그
   void _selectDate(BuildContext context) async {
     showDialog(
       context: context,
@@ -260,26 +251,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
               ListTile(
                 leading: Icon(Icons.calendar_today),
                 title: Text('Set Date'),
-                onTap: () async {
-                  Navigator.pop(context);
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: _photoTakenAt ?? DateTime.now(),
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime.now(),
-                  );
-
-                  if (picked != null) {
-                    setState(() {
-                      // Set date only without time
-                      _photoTakenAt = DateTime(
-                        picked.year,
-                        picked.month,
-                        picked.day,
-                      );
-                    });
-                  }
-                },
+                onTap: () => _showDatePicker(),
               ),
               Divider(),
               ListTile(
@@ -299,7 +271,28 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     );
   }
 
-  // 피드 생성
+  /// 날짜 선택기 표시
+  void _showDatePicker() async {
+    Navigator.pop(context);
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _photoTakenAt ?? DateTime.now(),
+      firstDate: DateTime(2000),
+      lastDate: DateTime.now(),
+    );
+
+    if (picked != null) {
+      setState(() {
+        _photoTakenAt = DateTime(
+          picked.year,
+          picked.month,
+          picked.day,
+        );
+      });
+    }
+  }
+
+  /// 피드 생성 및 업로드
   Future<void> _createFeed() async {
     if (!_formKey.currentState!.validate()) return;
     if (_latitude == null || _longitude == null) {
@@ -316,27 +309,10 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     try {
       final feedProvider = Provider.of<FeedProvider>(context, listen: false);
 
-      // 위도와 경도 포맷팅 - 서버 요구사항을 충족하도록
-      double formattedLatitude = double.parse(_latitude!.toStringAsFixed(6)); // 소수점 6자리로 제한
-      double formattedLongitude;
+      // 좌표 포맷팅 - 서버 요구사항에 맞게 조정
+      double formattedLatitude = double.parse(_latitude!.toStringAsFixed(6));
+      double formattedLongitude = _formatLongitude(_longitude!);
 
-      // 경도가 9자리를 초과하지 않도록 포맷팅
-      String longStr = _longitude!.toString();
-      if (longStr.replaceAll('.', '').length > 9) {
-        // 총 자릿수가 9자리가 되도록 소수점 부분 조정
-        int integerLength = longStr.split('.')[0].length;
-        int decimalPlaces = 9 - integerLength;
-        if (decimalPlaces > 0) {
-          formattedLongitude = double.parse(_longitude!.toStringAsFixed(decimalPlaces));
-        } else {
-          // 정수 부분만으로 9자리를 넘으면 정수 부분만 사용
-          formattedLongitude = double.parse(_longitude!.toStringAsFixed(0));
-        }
-      } else {
-        formattedLongitude = _longitude!;
-      }
-
-      // 날짜 정보가 ISO 형식으로 변환
       String? photoTakenAtStr;
       if (_photoTakenAt != null) {
         photoTakenAtStr = _photoTakenAt!.toIso8601String();
@@ -349,14 +325,14 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
         description: _descriptionController.text,
         visibility: _visibility,
         countryCode: _countryCode,
-        photoTakenAt: photoTakenAtStr, // 사진 촬영 날짜 추가
+        photoTakenAt: photoTakenAtStr,
         extraData: {
           'location_name': _locationName,
         },
       );
 
       if (success) {
-        Navigator.pop(context, true); // 성공 결과와 함께 이전 화면으로 돌아가기
+        Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Failed to upload post: ${feedProvider.errorMessage}'))
@@ -375,35 +351,26 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     }
   }
 
+  /// 경도 포맷팅 - 9자리 제한
+  double _formatLongitude(double longitude) {
+    String longStr = longitude.toString();
+    if (longStr.replaceAll('.', '').length > 9) {
+      int integerLength = longStr.split('.')[0].length;
+      int decimalPlaces = 9 - integerLength;
+      if (decimalPlaces > 0) {
+        return double.parse(longitude.toStringAsFixed(decimalPlaces));
+      } else {
+        return double.parse(longitude.toStringAsFixed(0));
+      }
+    } else {
+      return longitude;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
-            ? AppColors.darkSurface
-            : AppColors.primary,
-        title: Text(
-          'Create Post',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          TextButton(
-            onPressed: _isLoading ? null : _createFeed,
-            child: Text(
-              'Post',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-        centerTitle: true,
-      ),
+      appBar: _buildAppBar(),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
@@ -412,123 +379,164 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 이미지 미리보기
-              Container(
-                width: double.infinity,
-                height: 300,
-                color: Colors.grey[200],
-                child: Image.file(
-                  widget.imageFile,
-                  fit: BoxFit.cover,
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 설명 입력
-                    TextFormField(
-                      controller: _descriptionController,
-                      decoration: InputDecoration(
-                        hintText: 'Write a caption',
-                        border: InputBorder.none,
-                      ),
-                      maxLines: 5,
-                      minLines: 3,
-                      validator: (value) {
-                        // 설명은 선택 사항이므로 validation 없음
-                        return null;
-                      },
-                    ),
-
-                    Divider(),
-
-                    // 촬영 날짜 설정
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.calendar_today),
-                      title: Text('Photo Date'),
-                      subtitle: Text(
-                        _photoTakenAt != null
-                            ? DateFormat('yyyy-MM-dd').format(_photoTakenAt!)
-                            : 'No date information',
-                      ),
-                      trailing: IconButton(
-                        icon: Icon(Icons.edit),
-                        onPressed: () => _selectDate(context),
-                      ),
-                    ),
-
-                    Divider(),
-
-                    // 위치 정보
-                    // 위치 정보
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.location_on),
-                      title: _isLocationLoading
-                          ? Text('Fetching location')
-                          : Text(_locationName ?? 'No location selected'),
-                      subtitle: Text(
-                        'Latitude: ${_latitude?.toStringAsFixed(6) ?? 'N/A'}, Longitude: ${_longitude?.toStringAsFixed(6) ?? 'N/A'}',
-                        style: TextStyle(fontSize: 12),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 숫자로 좌표 수정 버튼
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: _editCoordinates,  // 새로운 함수
-                          ),
-                          // 지도에서 위치 선택 버튼
-                          IconButton(
-                            icon: Icon(Icons.edit_location_alt),
-                            onPressed: _editLocationOnMap,  // 기존 함수 이름 변경
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    Divider(),
-
-                    // 공개 범위 설정
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: Icon(Icons.visibility),
-                      title: Text('Who can see this?'),
-                      trailing: DropdownButton<String>(
-                        value: _visibility,
-                        underline: Container(),
-                        items: [
-                          DropdownMenuItem(
-                            value: 'public',
-                            child: Text('public'),
-                          ),
-                          DropdownMenuItem(
-                            value: 'private',
-                            child: Text('private'),
-                          ),
-                        ],
-                        onChanged: (value) {
-                          if (value != null) {
-                            setState(() {
-                              _visibility = value;
-                            });
-                          }
-                        },
-                      ),
-                    ),
-
-                    SizedBox(height: 40),
-                  ],
-                ),
-              ),
+              _buildImagePreview(),
+              _buildFormContent(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  /// AppBar 구성
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+          ? AppColors.darkSurface
+          : AppColors.primary,
+      title: Text(
+        'Create Post',
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+      ),
+      leading: IconButton(
+        icon: Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isLoading ? null : _createFeed,
+          child: Text(
+            'Post',
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+      centerTitle: true,
+    );
+  }
+
+  /// 이미지 미리보기 위젯
+  Widget _buildImagePreview() {
+    return Container(
+      width: double.infinity,
+      height: 300,
+      color: Colors.grey[200],
+      child: Image.file(
+        widget.imageFile,
+        fit: BoxFit.cover,
+      ),
+    );
+  }
+
+  /// 폼 내용 위젯
+  Widget _buildFormContent() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildDescriptionField(),
+          Divider(),
+          _buildDateSection(),
+          Divider(),
+          _buildLocationSection(),
+          Divider(),
+          _buildVisibilitySection(),
+          SizedBox(height: 40),
+        ],
+      ),
+    );
+  }
+
+  /// 설명 입력 필드
+  Widget _buildDescriptionField() {
+    return TextFormField(
+      controller: _descriptionController,
+      decoration: InputDecoration(
+        hintText: 'Write a caption',
+        border: InputBorder.none,
+      ),
+      maxLines: 5,
+      minLines: 3,
+      validator: (value) => null,
+    );
+  }
+
+  /// 촬영 날짜 섹션
+  Widget _buildDateSection() {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.calendar_today),
+      title: Text('Photo Date'),
+      subtitle: Text(
+        _photoTakenAt != null
+            ? DateFormat('yyyy-MM-dd').format(_photoTakenAt!)
+            : 'No date information',
+      ),
+      trailing: IconButton(
+        icon: Icon(Icons.edit),
+        onPressed: () => _selectDate(context),
+      ),
+    );
+  }
+
+  /// 위치 정보 섹션
+  Widget _buildLocationSection() {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.location_on),
+      title: _isLocationLoading
+          ? Text('Fetching location')
+          : Text(_locationName ?? 'No location selected'),
+      subtitle: Text(
+        'Latitude: ${_latitude?.toStringAsFixed(6) ?? 'N/A'}, Longitude: ${_longitude?.toStringAsFixed(6) ?? 'N/A'}',
+        style: TextStyle(fontSize: 12),
+      ),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            icon: Icon(Icons.edit),
+            onPressed: _editCoordinates,
+          ),
+          IconButton(
+            icon: Icon(Icons.edit_location_alt),
+            onPressed: _editLocationOnMap,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 공개 범위 설정 섹션
+  Widget _buildVisibilitySection() {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(Icons.visibility),
+      title: Text('Who can see this?'),
+      trailing: DropdownButton<String>(
+        value: _visibility,
+        underline: Container(),
+        items: [
+          DropdownMenuItem(
+            value: 'public',
+            child: Text('public'),
+          ),
+          DropdownMenuItem(
+            value: 'private',
+            child: Text('private'),
+          ),
+        ],
+        onChanged: (value) {
+          if (value != null) {
+            setState(() {
+              _visibility = value;
+            });
+          }
+        },
       ),
     );
   }

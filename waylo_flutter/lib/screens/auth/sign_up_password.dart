@@ -1,4 +1,3 @@
-// lib/screen/auth/sign_up_password.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -17,10 +16,10 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
   bool _isPasswordValid = false;
   bool _obscurePassword = true;
 
-  // 패스워드 유효성 검사 함수
+  /// 패스워드 유효성 검사
   void _validatePassword(String password) {
     final RegExp passwordRegex = RegExp(
-      r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{10,}$", // 최소 10자, 문자+숫자 포함
+      r"^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{10,}$",
     );
 
     setState(() {
@@ -28,7 +27,7 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
     });
   }
 
-  // 다음 페이지로 이동
+  /// 생년월일 입력 페이지로 이동
   Future<void> _goToBirthDatePage(BuildContext context) async {
     if (_isPasswordValid) {
       final password = _passwordController.text;
@@ -49,13 +48,8 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Create account",
@@ -66,9 +60,8 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56, // 기본 AppBar 높이
+        toolbarHeight: 56,
       ),
-
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20),
         child: Column(
@@ -89,7 +82,7 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white, // 입력 필드 배경색
+                fillColor: Colors.white,
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
@@ -103,7 +96,7 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
                   icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
                   onPressed: () {
                     setState(() {
-                      _obscurePassword = !_obscurePassword; // 패스워드 표시/숨기기 기능 추가
+                      _obscurePassword = !_obscurePassword;
                     });
                   },
                 ),
@@ -116,14 +109,12 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
               style: TextStyle(
                 fontSize: 10,
                 color: Colors.white,
-                // color: _isPasswordValid ? Colors.white : Colors.red,
               ),
             ),
-
-            const SizedBox(height: 30), // 버튼과 간격 추가
+            const SizedBox(height: 30),
             Center(
               child: SizedBox(
-                width: 100, // 버튼 크기 조정
+                width: 100,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isPasswordValid ? () => _goToBirthDatePage(context) : null,

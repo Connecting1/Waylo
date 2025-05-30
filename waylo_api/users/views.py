@@ -15,13 +15,10 @@ from django.core.files.base import ContentFile
 from django.conf import settings
 from .models import User
 
-
-# 중복 제거: get_user_model()을 한 번만 정의
 User = get_user_model()
 
 logger = logging.getLogger(__name__)
 
-# 사용자 생성
 @api_view(['POST'])
 def user_create_view(request):
     """
@@ -34,10 +31,9 @@ def user_create_view(request):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     except Exception:
-        return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': 'Server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# 사용자 로그인
 @api_view(['POST'])
 def user_login_view(request):
     """
@@ -48,7 +44,7 @@ def user_login_view(request):
         password = request.data.get("password")
 
         if not email or not password:
-            return Response({"error": "이메일과 비밀번호를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"error": "Please enter email and password."}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.get(email=email)
         if user.check_password(password):
@@ -58,16 +54,15 @@ def user_login_view(request):
                 "user_id": str(user.id)
             }, status=status.HTTP_200_OK)
 
-        return Response({"error": "비밀번호가 일치하지 않습니다."}, status=status.HTTP_401_UNAUTHORIZED)
+        return Response({"error": "Password does not match."}, status=status.HTTP_401_UNAUTHORIZED)
 
     except User.DoesNotExist:
-        return Response({"error": "이메일을 찾을 수 없습니다."}, status=status.HTTP_404_NOT_FOUND)
+        return Response({"error": "Email not found."}, status=status.HTTP_404_NOT_FOUND)
 
     except Exception:
-        return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': 'Server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# 사용자 정보 조회
 @api_view(['GET'])
 def get_user_info(request, user_id):
     """
@@ -87,10 +82,9 @@ def get_user_info(request, user_id):
     except User.DoesNotExist:
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
     except Exception:
-        return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'error': 'Server error occurred.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# 사용자 정보 업데이트
 @api_view(['PATCH'])
 @parser_classes([MultiPartParser])
 def update_user_info(request, user_id):
@@ -138,12 +132,11 @@ def update_user_info(request, user_id):
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception as e:
         import traceback
-        print(f"사용자 정보 업데이트 중 상세 오류: {e}")
-        print(f"스택 트레이스: {traceback.format_exc()}")
-        return Response({"error": f"서버 오류가 발생했습니다: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        print(f"Detailed error during user info update: {e}")
+        print(f"Stack trace: {traceback.format_exc()}")
+        return Response({"error": f"Server error occurred: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# 프로필 이미지 업데이트
 @api_view(['PATCH'])
 @parser_classes([MultiPartParser])
 def update_profile_image(request, user_id):
@@ -180,10 +173,9 @@ def update_profile_image(request, user_id):
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
     except Exception:
-        return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"error": "Server error occurred."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
-# 사용자 검색
 @api_view(['GET'])
 def search_users(request):
     """
@@ -192,7 +184,7 @@ def search_users(request):
     prefix = request.query_params.get('prefix', '')
 
     if not prefix:
-        return Response({"error": "검색어를 입력하세요."}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "Please enter search term."}, status=status.HTTP_400_BAD_REQUEST)
 
     users = User.objects.filter(username__istartswith=prefix)
 

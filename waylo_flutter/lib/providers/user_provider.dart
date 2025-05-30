@@ -1,20 +1,18 @@
-// lib/providers/user_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
-
 import '../services/api/api_service.dart';
 
+/// 사용자 정보를 관리하는 Provider
 class UserProvider extends ChangeNotifier {
-  String _username = "Loading...";
-  String _email = "";
-  String _gender = "";
-  String _phoneNumber = "";
-  String _accountVisibility = "";
-  String _profileImage = "";
-  String _userId = "";
-  bool _isLoaded = false;
+  String _username = "Loading...";                      // 사용자명
+  String _email = "";                                   // 이메일 주소
+  String _gender = "";                                  // 성별
+  String _phoneNumber = "";                             // 전화번호
+  String _accountVisibility = "";                       // 계정 공개 설정
+  String _profileImage = "";                            // 프로필 이미지 URL
+  String _userId = "";                                  // 사용자 고유 ID
+  bool _isLoaded = false;                               // 사용자 정보 로드 완료 여부
 
-  // Getters
   String get username => _username;
   String get email => _email;
   String get gender => _gender;
@@ -24,13 +22,11 @@ class UserProvider extends ChangeNotifier {
   String get userId => _userId;
   bool get isLoaded => _isLoaded;
 
-  // 사용자 정보 로드
+  /// 사용자 정보 로드
   Future<void> loadUserInfo({bool forceRefresh = false}) async {
-    // 이미 로드된 경우 중복 로드 방지
     if (!forceRefresh && _isLoaded) return;
 
     try {
-      // UserApi를 사용하여 사용자 정보 가져오기
       Map<String, dynamic> userInfo = await UserApi.fetchUserInfo();
 
       if (userInfo.containsKey("error")) {
@@ -42,13 +38,11 @@ class UserProvider extends ChangeNotifier {
         _phoneNumber = userInfo["phone_number"] ?? "";
         _accountVisibility = userInfo["account_visibility"] ?? "";
 
-        // 프로필 이미지 URL 처리 - 상대 경로를 전체 URL로 변환
         _profileImage = userInfo["profile_image"] ?? "";
         if (_profileImage.isNotEmpty && _profileImage.startsWith("/")) {
           _profileImage = "${ApiService.baseUrl}${_profileImage}";
         }
 
-        // 캐시 버스팅을 위한 타임스탬프 추가
         if (_profileImage.isNotEmpty) {
           _profileImage = "$_profileImage?t=${DateTime.now().millisecondsSinceEpoch}";
         }
@@ -64,7 +58,7 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
-  // 사용자 정보 업데이트
+  /// 사용자 정보 업데이트
   Future<void> updateUserInfo({
     String? username,
     String? email,
@@ -90,7 +84,6 @@ class UserProvider extends ChangeNotifier {
         return;
       }
 
-      // 로컬 상태 업데이트
       _username = username ?? _username;
       _email = email ?? _email;
       _gender = gender ?? _gender;
@@ -99,11 +92,11 @@ class UserProvider extends ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      print("[ERROR] 사용자 정보 업데이트 실패: $e");
+      // 업데이트 실패 시 조용히 처리
     }
   }
 
-  // 로그아웃 시 상태 초기화
+  /// Provider 상태 초기화
   void reset() {
     _username = "Loading...";
     _email = "";

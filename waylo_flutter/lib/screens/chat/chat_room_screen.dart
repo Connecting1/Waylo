@@ -1,4 +1,3 @@
-// lib/screen/chat/chat_room_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/providers/chat_provider.dart';
@@ -31,17 +30,15 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
   @override
   void initState() {
     super.initState();
-    // 메시지 로드 및 자동 새로고침 시작
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final chatProvider = Provider.of<ChatProvider>(context, listen: false);
       chatProvider.loadMessages(widget.roomId);
       chatProvider.startAutoRefresh(widget.roomId);
-
-      // 메시지 로드 후 스크롤을 맨 아래로 이동
       _scrollToBottom();
     });
   }
 
+  /// 채팅 스크롤을 맨 아래로 이동
   void _scrollToBottom() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_scrollController.hasClients) {
@@ -54,6 +51,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     });
   }
 
+  /// 메시지 전송 처리
   void _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty) return;
@@ -67,13 +65,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     }
   }
 
+  /// 프로필 이미지 URL 변환
   String _getFullProfileImageUrl(String profileImage) {
     if (profileImage.isEmpty) return '';
 
-    // 이미 전체 URL인 경우
     if (profileImage.startsWith('http')) return profileImage;
 
-    // 상대 경로를 전체 URL로 변환 - ApiService.baseUrl 사용
     if (profileImage.startsWith('/')) {
       return "${ApiService.baseUrl}$profileImage";
     }
@@ -86,107 +83,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     return Consumer<UserProvider>(
       builder: (context, userProvider, child) {
         return Scaffold(
-          appBar: AppBar(
-            title: Row(
-              children: [
-                CircleAvatar(
-                  backgroundImage: widget.friendProfileImage.isNotEmpty
-                      ? NetworkImage(_getFullProfileImageUrl(widget.friendProfileImage))
-                      : null,
-                  backgroundColor: Colors.grey[300],
-                  child: widget.friendProfileImage.isEmpty
-                      ? Icon(Icons.person, color: Colors.grey[600])
-                      : null,
-                  radius: 20,
-                ),
-                SizedBox(width: 10),
-                Text(widget.friendName, style: TextStyle(color: Colors.white),),
-              ],
-            ),
-            backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
-                ? AppColors.darkSurface
-                : AppColors.primary,
-          ),
+          appBar: _buildAppBar(),
           body: Column(
             children: [
-              // 메시지 목록
-              Expanded(
-                child: Consumer<ChatProvider>(
-                  builder: (context, chatProvider, child) {
-                    if (chatProvider.isLoadingMessages && chatProvider.getMessages(widget.roomId).isEmpty) {
-                      return Center(child: CircularProgressIndicator());
-                    }
-
-                    final messages = chatProvider.getMessages(widget.roomId);
-
-                    return ListView.builder(
-                      controller: _scrollController,
-                      itemCount: messages.length,
-                      padding: EdgeInsets.all(8),
-                      itemBuilder: (context, index) {
-                        final message = messages[index];
-
-                        // 현재 메시지가 안 읽었고, 이전 메시지는 읽었을 때만 구분선을 표시
-                        final showUnreadLine = index > 0 &&
-                            !message.isRead &&
-                            messages[index-1].isRead;
-
-                        return _buildMessageItem(message, showUnreadLine);
-                      },
-                    );
-                  },
-                ),
-              ),
-
-              // 메시지 입력 영역
-              Container(
-                padding: EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.5),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    // 현재 사용자 프로필 이미지
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: CircleAvatar(
-                        radius: 16,
-                        backgroundImage: userProvider.profileImage.isNotEmpty
-                            ? NetworkImage(userProvider.profileImage)
-                            : null,
-                        child: userProvider.profileImage.isEmpty
-                            ? Icon(Icons.person, size: 20)
-                            : null,
-                        backgroundColor: Colors.grey[300],
-                      ),
-                    ),
-                    // 메시지 입력 필드
-                    Expanded(
-                      child: TextField(
-                        controller: _messageController,
-                        decoration: InputDecoration(
-                          hintText: 'Type a message',
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        ),
-                        textInputAction: TextInputAction.send,
-                        onSubmitted: (_) => _sendMessage(),
-                      ),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.send, color: AppColors.primary),
-                      onPressed: _sendMessage,
-                    ),
-                  ],
-                ),
-              ),
+              _buildMessageList(),
+              _buildMessageInput(userProvider),
             ],
           ),
         );
@@ -194,10 +95,149 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  /// AppBar 구성
+  AppBar _buildAppBar() {
+    return AppBar(
+      title: Row(
+        children: [
+          CircleAvatar(
+            backgroundImage: widget.friendProfileImage.isNotEmpty
+                ? NetworkImage(_getFullProfileImageUrl(widget.friendProfileImage))
+                : null,
+            backgroundColor: Colors.grey[300],
+            child: widget.friendProfileImage.isEmpty
+                ? Icon(Icons.person, color: Colors.grey[600])
+                : null,
+            radius: 20,
+          ),
+          SizedBox(width: 10),
+          Text(
+            widget.friendName,
+            style: TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+      backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+          ? AppColors.darkSurface
+          : AppColors.primary,
+    );
+  }
+
+  /// 메시지 목록 위젯
+  Widget _buildMessageList() {
+    return Expanded(
+      child: Consumer<ChatProvider>(
+        builder: (context, chatProvider, child) {
+          if (chatProvider.isLoadingMessages && chatProvider.getMessages(widget.roomId).isEmpty) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          final messages = chatProvider.getMessages(widget.roomId);
+
+          return ListView.builder(
+            controller: _scrollController,
+            itemCount: messages.length,
+            padding: EdgeInsets.all(8),
+            itemBuilder: (context, index) {
+              final message = messages[index];
+
+              // 읽음 표시 구분선 조건: 현재 메시지가 안 읽었고, 이전 메시지는 읽었을 때
+              final showUnreadLine = index > 0 &&
+                  !message.isRead &&
+                  messages[index-1].isRead;
+
+              return _buildMessageItem(message, showUnreadLine);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  /// 메시지 입력 영역 위젯
+  Widget _buildMessageInput(UserProvider userProvider) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
+    return Container(
+      padding: EdgeInsets.all(8),
+      decoration: BoxDecoration(
+        color: themeProvider.isDarkMode
+            ? AppColors.darkSurface
+            : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: themeProvider.isDarkMode
+                ? Colors.black.withOpacity(0.3)
+                : Colors.grey.withOpacity(0.5),
+            spreadRadius: 1,
+            blurRadius: 5,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            child: CircleAvatar(
+              radius: 16,
+              backgroundImage: userProvider.profileImage.isNotEmpty
+                  ? NetworkImage(userProvider.profileImage)
+                  : null,
+              child: userProvider.profileImage.isEmpty
+                  ? Icon(
+                Icons.person,
+                size: 20,
+                color: themeProvider.isDarkMode
+                    ? Colors.grey[400]
+                    : Colors.grey[600],
+              )
+                  : null,
+              backgroundColor: themeProvider.isDarkMode
+                  ? Colors.grey[700]
+                  : Colors.grey[300],
+            ),
+          ),
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              style: TextStyle(
+                color: themeProvider.isDarkMode
+                    ? Colors.white
+                    : Colors.black87,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Type a message',
+                hintStyle: TextStyle(
+                  color: themeProvider.isDarkMode
+                      ? Colors.grey[400]
+                      : Colors.grey[600],
+                ),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              ),
+              textInputAction: TextInputAction.send,
+              onSubmitted: (_) => _sendMessage(),
+            ),
+          ),
+          IconButton(
+            icon: Icon(
+              Icons.send,
+              color: AppColors.primary,
+            ),
+            onPressed: _sendMessage,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 개별 메시지 아이템 위젯
   Widget _buildMessageItem(ChatMessage message, bool showUnreadLine) {
     return Column(
       children: [
-        // 읽음 표시 구분선
         if (showUnreadLine)
           Container(
             margin: EdgeInsets.symmetric(vertical: 8),
@@ -215,8 +255,6 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               ],
             ),
           ),
-
-        // 메시지 버블
         Align(
           alignment: message.isMine ? Alignment.centerRight : Alignment.centerLeft,
           child: GestureDetector(
@@ -251,6 +289,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  /// 메시지 정보 다이얼로그 표시
   void _showMessageInfo(ChatMessage message) {
     showDialog(
       context: context,
@@ -285,26 +324,23 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     );
   }
 
+  /// 메시지 시간 포맷팅
   String _formatDetailTime(DateTime dateTime) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
     if (messageDate == today) {
-      // 오늘 보낸 메시지는 시간만 표시
       return DateFormat('HH:mm').format(dateTime);
     } else if (messageDate.year == today.year) {
-      // 올해 보낸 메시지는 영국식 일/월 시:분
       return DateFormat('d MMMM, HH:mm').format(dateTime);
     } else {
-      // 작년 이전 메시지는 영국식 일/월/연 시:분
       return DateFormat('d MMMM yyyy, HH:mm').format(dateTime);
     }
   }
 
   @override
   void dispose() {
-    // 화면 나갈 때 자동 새로고침 중지
     Provider.of<ChatProvider>(context, listen: false).stopAutoRefresh();
     _messageController.dispose();
     _scrollController.dispose();

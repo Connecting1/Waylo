@@ -581,7 +581,7 @@ class MyMapContentWidgetState extends State<MyMapContentWidget> with AutomaticKe
       print("[ERROR] 피드 로드 및 마커 생성 오류: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("피드 데이터를 로드하는 중 오류가 발생했습니다.")),
+          SnackBar(content: Text("An error occurred while loading feed data.")),
         );
       }
     } finally {
@@ -941,7 +941,7 @@ class MyMapContentWidgetState extends State<MyMapContentWidget> with AutomaticKe
         } catch (e) {
           print("카메라 상태 가져오기 오류: $e");
           ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text("위치 정보를 가져올 수 없습니다."))
+              SnackBar(content: Text("Unable to get location information."))
           );
           setState(() {
             _isCreatingFeed = false;
@@ -970,7 +970,7 @@ class MyMapContentWidgetState extends State<MyMapContentWidget> with AutomaticKe
 
       if (result == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("피드가 성공적으로 생성되었습니다."))
+            SnackBar(content: Text("Feed created successfully."))
         );
 
         final feedMapProvider = Provider.of<FeedMapProvider>(context, listen: false);
@@ -989,7 +989,7 @@ class MyMapContentWidgetState extends State<MyMapContentWidget> with AutomaticKe
     } catch (e) {
       print("피드 생성 중 오류: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("피드 생성 중 오류가 발생했습니다."))
+          SnackBar(content: Text("An error occurred while creating feed."))
       );
       setState(() {
         _isCreatingFeed = false;
@@ -1152,13 +1152,13 @@ class MyMapContentWidgetState extends State<MyMapContentWidget> with AutomaticKe
       } else {
         debugPrint("[ERROR] 사진에 위치 정보 없음");
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("선택한 사진에 위치 정보가 없습니다."))
+            SnackBar(content: Text("The selected photo has no location information."))
         );
       }
     } catch (e) {
       debugPrint("⚠️ 오류 발생: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("사진 처리 중 오류가 발생했습니다: $e"))
+          SnackBar(content: Text("An error occurred while processing photo: $e"))
       );
     }
   }

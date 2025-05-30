@@ -1,4 +1,3 @@
-// lib/screen/main/shared_map_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/providers/feed_provider.dart';
@@ -28,7 +27,7 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
+    _scrollController.addListener(_handleScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadFriendsFeeds(refresh: true);
     });
@@ -36,17 +35,19 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
 
   @override
   void dispose() {
-    _scrollController.removeListener(_onScroll);
+    _scrollController.removeListener(_handleScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onScroll() {
+  /// 스크롤 이벤트 처리
+  void _handleScroll() {
     if (_scrollController.position.pixels == _scrollController.position.maxScrollExtent) {
       _loadMoreFeeds();
     }
   }
 
+  /// 친구 피드 로드
   Future<void> _loadFriendsFeeds({bool refresh = false}) async {
     final feedProvider = Provider.of<FeedProvider>(context, listen: false);
     if (refresh) {
@@ -55,6 +56,7 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
     await feedProvider.fetchFriendsFeeds(refresh: refresh, page: _currentPage);
   }
 
+  /// 추가 피드 로드
   Future<void> _loadMoreFeeds() async {
     final feedProvider = Provider.of<FeedProvider>(context, listen: false);
     if (!feedProvider.hasMoreFriendsFeeds || feedProvider.isLoading) return;
@@ -94,7 +96,7 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
                   SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () => _loadFriendsFeeds(refresh: true),
-                    child: Text('재시도'),
+                    child: Text('Retry'),
                   ),
                 ],
               ),
@@ -162,14 +164,13 @@ class _FeedCardState extends State<FeedCard> {
   List<FeedComment> _comments = [];
   bool _isLoadingComments = false;
   bool _isPostingComment = false;
-  bool _isLikeLoading = false; // 좋아요 로딩 상태 추가
-  bool _isBookmarkLoading = false; // 북마크 로딩 상태 추가
+  bool _isLikeLoading = false;
+  bool _isBookmarkLoading = false;
   String? _currentUserId;
 
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode();
 
-  // 로컬 상태 (실시간 업데이트용)
   late bool _isLiked;
   late bool _isBookmarked;
   late int _likesCount;
@@ -179,9 +180,8 @@ class _FeedCardState extends State<FeedCard> {
   void initState() {
     super.initState();
     _loadCurrentUserId();
-    _loadComments(); // 댓글 바로 로드
+    _loadComments();
 
-    // 초기 상태 설정
     _isLiked = widget.feed.isLiked;
     _isBookmarked = widget.feed.isBookmarked;
     _likesCount = widget.feed.likesCount;
@@ -195,11 +195,13 @@ class _FeedCardState extends State<FeedCard> {
     super.dispose();
   }
 
+  /// 현재 사용자 ID 로드
   Future<void> _loadCurrentUserId() async {
     _currentUserId = await ApiService.getUserId();
     setState(() {});
   }
 
+  /// 댓글 목록 로드
   Future<void> _loadComments() async {
     if (_isLoadingComments) return;
 
@@ -217,7 +219,7 @@ class _FeedCardState extends State<FeedCard> {
         });
       }
     } catch (e) {
-      print("[ERROR] 댓글 로드 중 오류 발생: $e");
+      // 에러 처리
     } finally {
       setState(() {
         _isLoadingComments = false;
@@ -225,17 +227,15 @@ class _FeedCardState extends State<FeedCard> {
     }
   }
 
-  Future<void> _toggleLike() async {
-    // 이미 로딩 중이면 무시
+  /// 좋아요 토글 처리
+  Future<void> _handleLikeToggle() async {
     if (_isLikeLoading) return;
 
-    // 원래 상태 저장
     final bool originalIsLiked = _isLiked;
     final int originalLikesCount = _likesCount;
 
     setState(() {
       _isLikeLoading = true;
-      // 즉시 UI 업데이트 (낙관적 업데이트)
       if (_isLiked) {
         _isLiked = false;
         _likesCount = _likesCount > 0 ? _likesCount - 1 : 0;
@@ -247,7 +247,6 @@ class _FeedCardState extends State<FeedCard> {
 
     try {
       Map<String, dynamic> response;
-      // 원래 상태 기준으로 API 호출
       if (originalIsLiked) {
         response = await FeedApi.unlikeFeed(widget.feed.id);
       } else {
@@ -255,29 +254,25 @@ class _FeedCardState extends State<FeedCard> {
       }
 
       if (response.containsKey('error')) {
-        // 오류 발생 시 원복
         setState(() {
           _isLiked = originalIsLiked;
           _likesCount = originalLikesCount;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('좋아요 처리 중 오류가 발생했습니다.')),
+          SnackBar(content: Text('An error occurred while processing like.')),
         );
       } else {
-        // 서버 응답으로 정확한 값 업데이트
         setState(() {
           _likesCount = response['likes_count'] ?? _likesCount;
         });
       }
     } catch (e) {
-      // 오류 발생 시 원복
       setState(() {
         _isLiked = originalIsLiked;
         _likesCount = originalLikesCount;
       });
-      print("[ERROR] 좋아요 토글 중 오류 발생: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('네트워크 오류가 발생했습니다.')),
+        SnackBar(content: Text('A network error occurred.')),
       );
     } finally {
       setState(() {
@@ -286,17 +281,15 @@ class _FeedCardState extends State<FeedCard> {
     }
   }
 
-  Future<void> _toggleBookmark() async {
-    // 이미 로딩 중이면 무시
+  /// 북마크 토글 처리
+  Future<void> _handleBookmarkToggle() async {
     if (_isBookmarkLoading) return;
 
-    // 원래 상태 저장
     final bool originalIsBookmarked = _isBookmarked;
     final int originalBookmarksCount = _bookmarksCount;
 
     setState(() {
       _isBookmarkLoading = true;
-      // 즉시 UI 업데이트 (낙관적 업데이트)
       if (_isBookmarked) {
         _isBookmarked = false;
         _bookmarksCount = _bookmarksCount > 0 ? _bookmarksCount - 1 : 0;
@@ -308,7 +301,6 @@ class _FeedCardState extends State<FeedCard> {
 
     try {
       Map<String, dynamic> response;
-      // 원래 상태 기준으로 API 호출
       if (originalIsBookmarked) {
         response = await FeedApi.unbookmarkFeed(widget.feed.id);
       } else {
@@ -316,29 +308,25 @@ class _FeedCardState extends State<FeedCard> {
       }
 
       if (response.containsKey('error')) {
-        // 오류 발생 시 원복
         setState(() {
           _isBookmarked = originalIsBookmarked;
           _bookmarksCount = originalBookmarksCount;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('북마크 처리 중 오류가 발생했습니다.')),
+          SnackBar(content: Text('An error occurred while processing bookmark.')),
         );
       } else {
-        // 서버 응답으로 정확한 값 업데이트
         setState(() {
           _bookmarksCount = response['bookmarks_count'] ?? _bookmarksCount;
         });
       }
     } catch (e) {
-      // 오류 발생 시 원복
       setState(() {
         _isBookmarked = originalIsBookmarked;
         _bookmarksCount = originalBookmarksCount;
       });
-      print("[ERROR] 북마크 토글 중 오류 발생: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('네트워크 오류가 발생했습니다.')),
+        SnackBar(content: Text('An error occurred while processing bookmark.')),
       );
     } finally {
       setState(() {
@@ -347,7 +335,8 @@ class _FeedCardState extends State<FeedCard> {
     }
   }
 
-  Future<void> _postComment() async {
+  /// 댓글 작성 처리
+  Future<void> _handleCommentPost() async {
     final comment = _commentController.text.trim();
     if (comment.isEmpty) return;
 
@@ -365,17 +354,124 @@ class _FeedCardState extends State<FeedCard> {
       }
 
       _commentController.clear();
-      await _loadComments(); // 댓글 새로고침
+      await _loadComments();
     } catch (e) {
-      print("[ERROR] 댓글 작성 중 오류 발생: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("댓글 작성 중 오류가 발생했습니다.")),
+        SnackBar(content: Text("An error occurred while posting comment.")),
       );
     } finally {
       setState(() {
         _isPostingComment = false;
       });
     }
+  }
+
+  /// 프로필 페이지로 이동
+  void _handleProfileNavigation() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => UserProfilePage(
+          userId: widget.feed.userId,
+          username: widget.feed.username,
+          profileImage: widget.feed.fullProfileImageUrl,
+        ),
+      ),
+    );
+  }
+
+  /// 위치 지도 표시
+  void _handleLocationMapShow() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          insetPadding: EdgeInsets.all(20),
+          child: Container(
+            height: 500,
+            child: Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(12),
+                      topRight: Radius.circular(12),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.location_on, color: Colors.white),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _getLocationText(),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(Icons.close, color: Colors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(12),
+                      bottomRight: Radius.circular(12),
+                    ),
+                    child: MapWidget(
+                      key: ValueKey("location-map-${widget.feed.id}"),
+                      cameraOptions: CameraOptions(
+                        center: Point(
+                            coordinates: Position(
+                                widget.feed.longitude,
+                                widget.feed.latitude
+                            )
+                        ),
+                        zoom: 15.0,
+                      ),
+                      onMapCreated: (MapboxMap mapboxMap) {
+                        _addMarkerToMap(mapboxMap);
+                      },
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.gps_fixed, size: 16, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text(
+                        "${widget.feed.latitude.toStringAsFixed(6)}, ${widget.feed.longitude.toStringAsFixed(6)}",
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                      SizedBox(width: 16),
+                      Icon(Icons.pan_tool, size: 16, color: Colors.grey),
+                      SizedBox(width: 4),
+                      Text(
+                        "Drag to explore",
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -389,13 +485,12 @@ class _FeedCardState extends State<FeedCard> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더 (프로필 이미지, 사용자명, 날짜)
           Padding(
             padding: EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: Row(
               children: [
                 InkWell(
-                  onTap: () => _navigateToProfile(),
+                  onTap: _handleProfileNavigation,
                   borderRadius: BorderRadius.circular(25),
                   child: CircleAvatar(
                     radius: 20,
@@ -410,7 +505,7 @@ class _FeedCardState extends State<FeedCard> {
                 SizedBox(width: 12),
                 Expanded(
                   child: InkWell(
-                    onTap: () => _navigateToProfile(),
+                    onTap: _handleProfileNavigation,
                     borderRadius: BorderRadius.circular(8),
                     child: Padding(
                       padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
@@ -441,10 +536,8 @@ class _FeedCardState extends State<FeedCard> {
             ),
           ),
 
-          // 이미지
           Container(
             width: double.infinity,
-            // constraints: BoxConstraints(maxHeight: 400),
             child: Image.network(
               widget.feed.fullImageUrl,
               fit: BoxFit.contain,
@@ -467,14 +560,12 @@ class _FeedCardState extends State<FeedCard> {
             ),
           ),
 
-          // 액션 버튼들 (좋아요, 북마크 - 왼쪽에 나란히)
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Row(
               children: [
-                // 좋아요 버튼
                 InkWell(
-                  onTap: _isLikeLoading ? null : _toggleLike,
+                  onTap: _isLikeLoading ? null : _handleLikeToggle,
                   borderRadius: BorderRadius.circular(20),
                   child: Opacity(
                     opacity: _isLikeLoading ? 0.6 : 1.0,
@@ -505,9 +596,8 @@ class _FeedCardState extends State<FeedCard> {
                   ),
                 ),
                 SizedBox(width: 20),
-                // 북마크 버튼
                 InkWell(
-                  onTap: _isBookmarkLoading ? null : _toggleBookmark,
+                  onTap: _isBookmarkLoading ? null : _handleBookmarkToggle,
                   borderRadius: BorderRadius.circular(20),
                   child: Opacity(
                     opacity: _isBookmarkLoading ? 0.6 : 1.0,
@@ -541,7 +631,6 @@ class _FeedCardState extends State<FeedCard> {
             ),
           ),
 
-          // 설명
           if (widget.feed.description.isNotEmpty)
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 12),
@@ -551,9 +640,8 @@ class _FeedCardState extends State<FeedCard> {
               ),
             ),
 
-          // 위치 지도 (댓글 위에 표시)
           InkWell(
-            onTap: () => _showLocationOnMap(),
+            onTap: _handleLocationMapShow,
             borderRadius: BorderRadius.circular(12),
             child: Container(
               margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -566,7 +654,6 @@ class _FeedCardState extends State<FeedCard> {
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
-                    // 정적 지도 이미지 (Mapbox Static Images API)
                     Container(
                       width: double.infinity,
                       height: double.infinity,
@@ -601,7 +688,6 @@ class _FeedCardState extends State<FeedCard> {
                         },
                       ),
                     ),
-                    // 위치 정보 오버레이
                     Positioned(
                       bottom: 8,
                       left: 8,
@@ -631,7 +717,6 @@ class _FeedCardState extends State<FeedCard> {
                         ),
                       ),
                     ),
-                    // 클릭 힌트 아이콘
                     Positioned(
                       top: 8,
                       right: 8,
@@ -654,10 +739,8 @@ class _FeedCardState extends State<FeedCard> {
             ),
           ),
 
-          // 댓글 섹션 (항상 표시)
           Divider(color: Colors.grey[300]),
 
-          // 댓글 목록
           if (_isLoadingComments)
             Padding(
               padding: EdgeInsets.all(16),
@@ -679,7 +762,6 @@ class _FeedCardState extends State<FeedCard> {
                   (index) => _buildCommentItem(_comments[index]),
             ),
 
-          // 댓글 입력
           Padding(
             padding: EdgeInsets.all(12),
             child: Row(
@@ -713,14 +795,14 @@ class _FeedCardState extends State<FeedCard> {
                       contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     ),
                     maxLines: 1,
-                    onSubmitted: (_) => _postComment(), // 엔터 키로도 전송 가능
+                    onSubmitted: (_) => _handleCommentPost(),
                   ),
                 ),
                 SizedBox(width: 8),
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: _isPostingComment ? null : _postComment,
+                    onTap: _isPostingComment ? null : _handleCommentPost,
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       padding: EdgeInsets.all(8),
@@ -748,6 +830,7 @@ class _FeedCardState extends State<FeedCard> {
     );
   }
 
+  /// 댓글 아이템 위젯
   Widget _buildCommentItem(FeedComment comment) {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
@@ -757,18 +840,7 @@ class _FeedCardState extends State<FeedCard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           InkWell(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => UserProfilePage(
-                    userId: comment.userId,
-                    username: comment.username,
-                    profileImage: comment.fullProfileImageUrl,
-                  ),
-                ),
-              );
-            },
+            onTap: () => _navigateToCommentProfile(comment),
             borderRadius: BorderRadius.circular(15),
             child: Container(
               padding: EdgeInsets.all(2),
@@ -789,18 +861,7 @@ class _FeedCardState extends State<FeedCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => UserProfilePage(
-                          userId: comment.userId,
-                          username: comment.username,
-                          profileImage: comment.fullProfileImageUrl,
-                        ),
-                      ),
-                    );
-                  },
+                  onTap: () => _navigateToCommentProfile(comment),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
@@ -846,117 +907,21 @@ class _FeedCardState extends State<FeedCard> {
     );
   }
 
-  void _navigateToProfile() {
+  /// 댓글 작성자 프로필로 이동
+  void _navigateToCommentProfile(FeedComment comment) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UserProfilePage(
-          userId: widget.feed.userId,
-          username: widget.feed.username,
-          profileImage: widget.feed.fullProfileImageUrl,
+          userId: comment.userId,
+          username: comment.username,
+          profileImage: comment.fullProfileImageUrl,
         ),
       ),
     );
   }
 
-  // 위치를 전체 화면 지도에서 보기
-  void _showLocationOnMap() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          insetPadding: EdgeInsets.all(20),
-          child: Container(
-            height: 500,
-            child: Column(
-              children: [
-                // 헤더
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.location_on, color: Colors.white),
-                      SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _getLocationText(),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
-                ),
-                // 인터랙티브 지도 영역
-                Expanded(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
-                    ),
-                    child: MapWidget(
-                      key: ValueKey("location-map-${widget.feed.id}"),
-                      cameraOptions: CameraOptions(
-                        center: Point(
-                            coordinates: Position(
-                                widget.feed.longitude,
-                                widget.feed.latitude
-                            )
-                        ),
-                        zoom: 15.0,
-                      ),
-                      onMapCreated: (MapboxMap mapboxMap) {
-                        _addMarkerToMap(mapboxMap);
-                      },
-                    ),
-                  ),
-                ),
-                // 좌표 정보
-                Container(
-                  padding: EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.gps_fixed, size: 16, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        "${widget.feed.latitude.toStringAsFixed(6)}, ${widget.feed.longitude.toStringAsFixed(6)}",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                      SizedBox(width: 16),
-                      Icon(Icons.pan_tool, size: 16, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        "Drag to explore",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // 지도에 마커 추가
+  /// 지도에 마커 추가
   Future<void> _addMarkerToMap(MapboxMap mapboxMap) async {
     try {
       await mapboxMap.gestures.updateSettings(
@@ -968,46 +933,40 @@ class _FeedCardState extends State<FeedCard> {
         ),
       );
 
-      // 썸네일 이미지 다운로드
       Uint8List? imageData = await _downloadImage(widget.feed.fullThumbnailUrl);
       if (imageData == null) return;
 
-      // 테두리 추가
       Uint8List borderedImage = await _addBorderToImage(imageData);
 
-      // 마커 생성
       final pointAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
       final pointAnnotation = PointAnnotationOptions(
         geometry: Point(
             coordinates: Position(widget.feed.longitude, widget.feed.latitude)
         ),
         image: borderedImage,
-        iconSize: 1.0, // my_map과 동일
+        iconSize: 1.0,
       );
 
       await pointAnnotationManager.create(pointAnnotation);
-      print("[SUCCESS] 썸네일 마커 추가 완료");
-
     } catch (e) {
-      print("[ERROR] 썸네일 마커 추가 실패: $e");
+      // 에러 처리
     }
   }
 
+  /// 이미지 다운로드
   Future<Uint8List?> _downloadImage(String url) async {
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         return response.bodyBytes;
-      } else {
-        print("[ERROR] 다운로드 실패 - 상태 코드: ${response.statusCode}");
       }
     } catch (e) {
-      print("[ERROR] 이미지 다운로드 오류 상세: $e");
+      // 에러 처리
     }
     return null;
   }
 
-
+  /// 이미지에 테두리 추가
   Future<Uint8List> _addBorderToImage(Uint8List imageBytes) async {
     final int size = 170;
     final int photoSize = 150;
@@ -1059,61 +1018,34 @@ class _FeedCardState extends State<FeedCard> {
     return byteData!.buffer.asUint8List();
   }
 
-  // 대안 마커 추가 방법
-  Future<void> _addAlternativeMarker(MapboxMap mapboxMap) async {
-    try {
-      final pointAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
-
-      // 더 간단한 마커 설정
-      final pointAnnotation = PointAnnotationOptions(
-        geometry: Point(
-            coordinates: Position(
-                widget.feed.longitude,
-                widget.feed.latitude
-            )
-        ),
-        textField: "📍",
-        textSize: 24.0,
-        textColor: Colors.red.value,
-      );
-
-      await pointAnnotationManager.create(pointAnnotation);
-      print("[INFO] 대안 마커가 추가되었습니다.");
-    } catch (e) {
-      print("[ERROR] 대안 마커 추가도 실패: $e");
-    }
-  }
-
-  // Mapbox Static Images API URL 생성 (오버로드)
+  /// Mapbox Static Images API URL 생성
   String _getMapboxStaticImageUrl({int zoom = 14, int width = 400, int height = 200}) {
-    const String accessToken = String.fromEnvironment("ACCESS_TOKEN", defaultValue: "pk.eyJ1IjoiY3Nkc2FkYXMiLCJhIjoiY2x4eDB2djJmMDhrcjJtcHhzeWFibHIxMiJ9.yU0tLrRdgUTv5xNj-ug9Ww");
+    const String accessToken = String.fromEnvironment("ACCESS_TOKEN",
+        defaultValue: "pk.eyJ1IjoiY3Nkc2FkYXMiLCJhIjoiY2x4eDB2djJmMDhrcjJtcHhzeWFibHIxMiJ9.yU0tLrRdgUTv5xNj-ug9Ww");
     final double lng = widget.feed.longitude;
     final double lat = widget.feed.latitude;
 
-    // 마커 추가 (빨간 핀)
     final String marker = "pin-s+ff0000($lng,$lat)";
 
     return "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/$marker/$lng,$lat,$zoom/${width}x$height?access_token=$accessToken";
   }
 
-  // 위치 텍스트 생성
+  /// 위치 텍스트 가져오기
   String _getLocationText() {
-    // extra_data에서 location_name 가져오기
     if (widget.feed.extraData.containsKey('location_name') &&
         widget.feed.extraData['location_name'] != null &&
         widget.feed.extraData['location_name'].isNotEmpty) {
       return widget.feed.extraData['location_name'];
     }
 
-    // country_code가 있으면 사용
     if (widget.feed.countryCode.isNotEmpty && widget.feed.countryCode != 'UNKNOWN') {
       return widget.feed.countryCode;
     }
 
-    // 좌표로 대체
     return "${widget.feed.latitude.toStringAsFixed(3)}, ${widget.feed.longitude.toStringAsFixed(3)}";
   }
 
+  /// 날짜 포맷팅
   String _formatDate(DateTime date) {
     final now = DateTime.now();
     final difference = now.difference(date);
@@ -1135,6 +1067,7 @@ class _FeedCardState extends State<FeedCard> {
     }
   }
 
+  /// 시간 경과 표시
   String _timeAgo(DateTime dateTime) {
     final difference = DateTime.now().difference(dateTime);
 

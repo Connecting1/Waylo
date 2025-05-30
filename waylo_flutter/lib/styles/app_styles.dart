@@ -1,19 +1,18 @@
-// lib/styles/app_styles.dart
-
 import 'package:flutter/material.dart';
 
+/// 앱의 색상과 테마를 정의하는 클래스
 class AppColors {
   static const Color primary = Color(0xFF97DCF1);
   static const Color secondary = Color(0xFFFFC107);
   static const Color background = Color(0xFFF5F5F5);
 
-  // 다크 모드용 색상 추가
   static const Color darkBackground = Color(0xFF121212);
   static const Color darkSurface = Color(0xFF1E1E1E);
   static const Color darkCard = Color(0xFF2C2C2C);
 
   static MaterialColor get primarySwatch => createMaterialColor(primary);
 
+  /// 색상으로부터 MaterialColor 생성
   static MaterialColor createMaterialColor(Color color) {
     List strengths = <double>[.05];
     Map<int, Color> swatch = {};
@@ -34,7 +33,7 @@ class AppColors {
     return MaterialColor(color.value, swatch);
   }
 
-  // 라이트 테마
+  /// 라이트 테마
   static ThemeData lightTheme = ThemeData(
     primarySwatch: primarySwatch,
     primaryColor: primary,
@@ -44,10 +43,9 @@ class AppColors {
     ),
     scaffoldBackgroundColor: Colors.white,
     appBarTheme: AppBarTheme(
-        backgroundColor: primary,
-        foregroundColor: Colors.white,
-        elevation:
-        0
+      backgroundColor: primary,
+      foregroundColor: Colors.white,
+      elevation: 0,
     ),
     cardTheme: CardTheme(
       color: Colors.white,
@@ -67,10 +65,10 @@ class AppColors {
     useMaterial3: true,
   );
 
-  // 다크 테마
+  /// 다크 테마
   static ThemeData darkTheme = ThemeData(
     primarySwatch: primarySwatch,
-    primaryColor: primary, // 주요 색상은 동일하게 유지
+    primaryColor: primary,
     colorScheme: ColorScheme.fromSeed(
       seedColor: primary,
       brightness: Brightness.dark,
@@ -116,22 +114,24 @@ class AppColors {
   );
 }
 
-
+/// 버튼 스타일을 정의하는 클래스
 class ButtonStyles {
+  /// 로그인 버튼 스타일
   static ButtonStyle loginButtonStyle(BuildContext context) {
     return ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF97DCF1), // 배경색
-      foregroundColor: Colors.white, // 버튼 텍스트 색상
+      backgroundColor: const Color(0xFF97DCF1),
+      foregroundColor: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(30), // 둥근 버튼
-        side: const BorderSide(color: Colors.white, width: 4), // 흰색 테두리 추가
+        borderRadius: BorderRadius.circular(30),
+        side: const BorderSide(color: Colors.white, width: 4),
       ),
-      shadowColor: Colors.transparent, // 그림자 제거
-      fixedSize: Size(MediaQuery.of(context).size.width * 0.85, 50), // 가로 크기 자동 조정
+      shadowColor: Colors.transparent,
+      fixedSize: Size(MediaQuery.of(context).size.width * 0.85, 50),
     );
   }
 
+  /// 폼 버튼 스타일
   static ButtonStyle formButtonStyle(BuildContext context, {bool isEnabled = true}) {
     return ElevatedButton.styleFrom(
       backgroundColor: isEnabled ? const Color(0xFFFFFFFF) : const Color(0xFF9E9E9E),
@@ -141,10 +141,8 @@ class ButtonStyles {
       ),
       shadowColor: Colors.transparent,
       fixedSize: const Size(100, 50),
-      // 테마의 영향을 받지 않도록 강제 설정
       elevation: 0,
     ).copyWith(
-      // 모든 상태에서 동일한 색상 강제 적용
       backgroundColor: WidgetStateProperty.all(
           isEnabled ? const Color(0xFFFFFFFF) : const Color(0xFF9E9E9E)
       ),

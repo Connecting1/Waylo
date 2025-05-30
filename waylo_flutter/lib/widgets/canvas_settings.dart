@@ -1,7 +1,7 @@
-// lib/widget/canvas_setting.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
+/// 캔버스 배경색과 패턴을 설정하는 위젯
 class CanvasSettings extends StatefulWidget {
   final Color initialColor;
   final String initialPattern;
@@ -32,7 +32,6 @@ class _CanvasSettingsState extends State<CanvasSettings> {
   @override
   void didUpdateWidget(CanvasSettings oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 프로바이더의 값이 변경되었을 때 위젯 상태 업데이트
     if (oldWidget.initialColor != widget.initialColor ||
         oldWidget.initialPattern != widget.initialPattern) {
       setState(() {
@@ -42,6 +41,7 @@ class _CanvasSettingsState extends State<CanvasSettings> {
     }
   }
 
+  /// 캔버스 배경 설정 다이얼로그 표시
   void _pickCanvasBackground(BuildContext context) {
     showDialog(
       context: context,

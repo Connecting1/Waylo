@@ -1,20 +1,17 @@
-// lib/providers/feed_map_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/feed.dart';
 import 'package:waylo_flutter/services/api/feed_api.dart';
-
 import '../services/api/api_service.dart';
 
+/// 지도에 표시할 피드 데이터를 관리하는 Provider
 class FeedMapProvider extends ChangeNotifier {
-  List<Feed> _mapFeeds = [];
-  Map<String, List<Feed>> _countryFeeds = {}; // 국가 코드별 피드 그룹
-  bool _hasGroupedByCountry = false;
-  bool _isLoading = false;
-  bool _isLoaded = false;
-  String _errorMessage = '';
+  List<Feed> _mapFeeds = [];                            // 지도에 표시될 피드 목록
+  Map<String, List<Feed>> _countryFeeds = {};           // 국가 코드별 피드 그룹
+  bool _hasGroupedByCountry = false;                    // 국가별 그룹화 완료 여부
+  bool _isLoading = false;                              // 로딩 상태
+  bool _isLoaded = false;                               // 데이터 로드 완료 여부
+  String _errorMessage = '';                            // 에러 메시지
 
-
-  // Getters
   List<Feed> get mapFeeds => _mapFeeds;
   Map<String, List<Feed>> get countryFeeds => _countryFeeds;
   bool get hasGroupedByCountry => _hasGroupedByCountry;
@@ -22,7 +19,7 @@ class FeedMapProvider extends ChangeNotifier {
   bool get isLoaded => _isLoaded;
   String get errorMessage => _errorMessage;
 
-  // 지도에 표시할 피드 로드
+  /// 지도에 표시할 피드 로드
   Future<void> loadFeedsForMap({bool refresh = false}) async {
     if (_isLoading) return;
 
@@ -35,7 +32,6 @@ class FeedMapProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 사용자 ID 가져오기
       String? userId = await ApiService.getUserId();
       if (userId == null) {
         _errorMessage = '사용자 ID를 찾을 수 없습니다.';
@@ -43,12 +39,10 @@ class FeedMapProvider extends ChangeNotifier {
         return;
       }
 
-      // 사용자 본인의 피드만 가져오기
       final response = await FeedApi.fetchUserFeeds(userId, limit: 100);
 
       if (response is Map && response.containsKey('error')) {
         _errorMessage = response['error'];
-        print("[ERROR] 피드맵: 피드 로드 오류 - $_errorMessage");
         notifyListeners();
         return;
       }
@@ -63,14 +57,13 @@ class FeedMapProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = '피드 로드 중 오류가 발생했습니다: $e';
-      print('️[ERROR] 피드맵 로드 실패: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // 특정 위치 주변의 피드 로드 (선택적 기능)
+  /// 특정 위치 주변의 피드 로드
   Future<void> loadNearbyFeedsForMap({
     required double latitude,
     required double longitude,
@@ -84,7 +77,6 @@ class FeedMapProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-
       final response = await FeedApi.fetchNearbyFeeds(
         latitude: latitude,
         longitude: longitude,
@@ -94,7 +86,6 @@ class FeedMapProvider extends ChangeNotifier {
 
       if (response is Map && response.containsKey('error')) {
         _errorMessage = response['error'];
-        print("[ERROR] 피드맵: 주변 피드 로드 오류 - $_errorMessage");
         notifyListeners();
         return;
       }
@@ -106,7 +97,6 @@ class FeedMapProvider extends ChangeNotifier {
         if (refresh) {
           _mapFeeds = nearbyFeeds;
         } else {
-          // 기존 피드에 주변 피드 추가 (중복 제거)
           Set<String> existingIds = _mapFeeds.map((feed) => feed.id).toSet();
           for (var feed in nearbyFeeds) {
             if (!existingIds.contains(feed.id)) {
@@ -120,19 +110,17 @@ class FeedMapProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = '주변 피드 로드 중 오류가 발생했습니다: $e';
-      print('[ERROR] 주변 피드맵 로드 실패: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  // 새 피드 추가 (새 피드 생성 후 지도에 즉시 표시를 위해)
+  /// 새 피드를 지도에 추가
   void addFeedToMap(Feed feed) {
     if (!_mapFeeds.any((f) => f.id == feed.id)) {
       _mapFeeds.add(feed);
 
-      // 추가: 그룹화 상태 초기화 및 재그룹화
       _hasGroupedByCountry = false;
       groupFeedsByCountry();
 
@@ -140,14 +128,13 @@ class FeedMapProvider extends ChangeNotifier {
     }
   }
 
-  // 추가할 메서드: 국가별 피드 그룹화
+  /// 피드를 국가별로 그룹화
   void groupFeedsByCountry() {
     if (_hasGroupedByCountry) return;
 
     _countryFeeds.clear();
 
     for (Feed feed in _mapFeeds) {
-      // 직접 feed.countryCode 필드에서 국가 코드 가져오기
       String countryCode = feed.countryCode.isNotEmpty ? feed.countryCode : "UNKNOWN";
 
       if (!_countryFeeds.containsKey(countryCode)) {
@@ -157,20 +144,15 @@ class FeedMapProvider extends ChangeNotifier {
       _countryFeeds[countryCode]!.add(feed);
     }
 
-    // 결과 확인
-    _countryFeeds.forEach((code, feeds) {
-      print("국가 코드: $code, 피드 수: ${feeds.length}");
-    });
-
     _hasGroupedByCountry = true;
     notifyListeners();
   }
 
-  // 상태 초기화
+  /// Provider 상태 초기화
   void reset() {
     _mapFeeds = [];
-    _countryFeeds = {}; // 추가
-    _hasGroupedByCountry = false; // 추가
+    _countryFeeds = {};
+    _hasGroupedByCountry = false;
     _isLoading = false;
     _isLoaded = false;
     _errorMessage = '';

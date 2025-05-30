@@ -1,5 +1,3 @@
-// lib/widget/custom_widgets/checklist_widget.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/models/album_widget.dart';
@@ -7,6 +5,7 @@ import 'package:waylo_flutter/services/api/widget_api.dart';
 import 'package:waylo_flutter/providers/widget_provider.dart';
 import '../../../styles/app_styles.dart';
 
+/// 체크리스트 기능을 제공하는 위젯
 class ChecklistWidget extends StatefulWidget {
   final AlbumWidget widget;
 
@@ -29,7 +28,6 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     super.initState();
     _loadItems();
 
-    // 제목을 위한 컨트롤러 초기화
     _titleController = TextEditingController(
         text: widget.widget.extraData['title'] ?? 'Check List');
   }
@@ -41,6 +39,7 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     super.dispose();
   }
 
+  /// 제목 저장
   Future<void> _saveTitle() async {
     if (_titleController.text.isEmpty) {
       _titleController.text = 'Check List';
@@ -50,18 +49,15 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     final String currentTitle = widget.widget.extraData['title'] ?? 'Check List';
 
     if (newTitle != currentTitle) {
-      // extraData 복사 후 title 업데이트
       Map<String, dynamic> updatedExtraData = Map.from(widget.widget.extraData);
       updatedExtraData['title'] = newTitle;
 
-      // 서버에 업데이트 요청
       final widgetProvider =
       Provider.of<WidgetProvider>(context, listen: false);
       bool success = await widgetProvider.updateWidgetExtraData(
           widget.widget.id, updatedExtraData);
 
       if (!success) {
-        // 실패 시 원래 제목으로 복원
         setState(() {
           _titleController.text = currentTitle;
         });
@@ -72,11 +68,11 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     }
   }
 
+  /// 제목 편집 모드 토글
   void _toggleTitleEditMode() {
     setState(() {
       _isTitleEditMode = !_isTitleEditMode;
       if (_isTitleEditMode) {
-        // 포커스 요청을 지연시켜 setState 완료 후 실행
         Future.delayed(Duration(milliseconds: 50), () {
           _titleFocusNode.requestFocus();
         });
@@ -84,164 +80,144 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     });
   }
 
+  /// 체크리스트 항목 로드
   Future<void> _loadItems() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 위젯의 extraData에서 items 배열을 가져옵니다
-      // 기존 위젯 모델의 extraData를 사용
       final items = widget.widget.extraData['items'] ?? [];
       setState(() {
         _items = List<Map<String, dynamic>>.from(items);
         _isLoading = false;
       });
     } catch (e) {
-      print("❌ 체크리스트 항목 로드 오류: $e");
       setState(() {
         _isLoading = false;
       });
     }
   }
 
+  /// 체크리스트 항목 체크 상태 토글
   Future<void> _toggleItem(int index, bool value) async {
     try {
-      // 로컬 상태 먼저 업데이트
       setState(() {
         _items[index]['checked'] = value;
       });
 
-      // extraData에 수정된 items 배열 반영
       Map<String, dynamic> updatedExtraData = Map.from(widget.widget.extraData);
       updatedExtraData['items'] = _items;
 
-      // 기존 updateWidget API 사용하여 extraData 업데이트
       bool success = await WidgetApi.updateWidget(
         widgetId: widget.widget.id,
         extraData: updatedExtraData,
       );
 
       if (!success) {
-        // 실패 시 원래 상태로 복원
         setState(() {
           _items[index]['checked'] = !value;
         });
       }
     } catch (e) {
-      print("❌ 체크리스트 항목 토글 오류: $e");
-      // 실패 시 원래 상태로 복원
       setState(() {
         _items[index]['checked'] = !value;
       });
     }
   }
 
+  /// 새 항목 추가
   Future<void> _addItem(String text) async {
     if (text.isEmpty) return;
 
     try {
-      // 새 항목 생성
       final newItem = {
-        'id': DateTime.now().millisecondsSinceEpoch.toString(), // 간단한 고유 ID
+        'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'text': text,
         'checked': false
       };
 
-      // 로컬 상태에 항목 추가
       setState(() {
         _items.add(newItem);
       });
 
-      // extraData 업데이트
       Map<String, dynamic> updatedExtraData = Map.from(widget.widget.extraData);
       updatedExtraData['items'] = _items;
 
-      // 기존 updateWidget API 사용
       bool success = await WidgetApi.updateWidget(
         widgetId: widget.widget.id,
         extraData: updatedExtraData,
       );
 
       if (!success) {
-        // 실패 시 마지막 항목 제거
         setState(() {
           _items.removeLast();
         });
       }
     } catch (e) {
-      print("❌ 체크리스트 항목 추가 오류: $e");
-      // 실패 시 마지막 항목 제거
       setState(() {
         _items.removeLast();
       });
     }
   }
 
+  /// 항목 삭제
   Future<void> _removeItem(int index) async {
     try {
-      // 삭제할 항목 저장
       final removedItem = _items[index];
 
-      // 로컬 상태 업데이트
       setState(() {
         _items.removeAt(index);
       });
 
-      // extraData 업데이트
       Map<String, dynamic> updatedExtraData = Map.from(widget.widget.extraData);
       updatedExtraData['items'] = _items;
 
-      // 기존 updateWidget API 사용
       bool success = await WidgetApi.updateWidget(
         widgetId: widget.widget.id,
         extraData: updatedExtraData,
       );
 
       if (!success) {
-        // 실패 시 삭제된 항목 복원
         setState(() {
           _items.insert(index, Map<String, dynamic>.from(removedItem));
         });
       }
     } catch (e) {
-      print("❌ 체크리스트 항목 삭제 오류: $e");
+      // 에러 처리
     }
   }
 
+  /// 항목 텍스트 업데이트
   Future<void> _updateItemText(int index, String newText) async {
     if (newText.isEmpty) return;
 
     try {
-      // 기존 텍스트 저장
       final oldText = _items[index]['text'];
 
-      // 로컬 상태 업데이트
       setState(() {
         _items[index]['text'] = newText;
       });
 
-      // extraData 업데이트
       Map<String, dynamic> updatedExtraData = Map.from(widget.widget.extraData);
       updatedExtraData['items'] = _items;
 
-      // 기존 updateWidget API 사용
       bool success = await WidgetApi.updateWidget(
         widgetId: widget.widget.id,
         extraData: updatedExtraData,
       );
 
       if (!success) {
-        // 실패 시 원래 텍스트로 복원
         setState(() {
           _items[index]['text'] = oldText;
         });
       }
     } catch (e) {
-      print("❌ 체크리스트 항목 텍스트 업데이트 오류: $e");
+      // 에러 처리
     }
   }
 
+  /// 항목 추가 다이얼로그 표시
   void _showAddItemDialog() {
     final TextEditingController controller = TextEditingController();
 
@@ -271,12 +247,12 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     );
   }
 
+  /// 편집 모드 토글
   void _toggleEditMode() {
     setState(() {
       _isEditMode = !_isEditMode;
     });
 
-    // 편집 모드가 종료될 때 제목 저장
     if (!_isEditMode) {
       _saveTitle();
     }
@@ -323,12 +299,10 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 헤더 부분
           Row(
             children: [
               Icon(Icons.checklist, color: AppColors.primary,),
               SizedBox(width: 8),
-              // 제목 부분 - 편집 모드에 따라 다르게 표시
               Expanded(
                 flex: 3,
                 child: _isEditMode
@@ -357,7 +331,6 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
                 ),
               ),
 
-              // 편집 모드 토글 버튼
               IconButton(
                 icon: Icon(
                   _isEditMode ? Icons.done : Icons.edit,
@@ -368,7 +341,6 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
                 padding: EdgeInsets.all(4),
                 constraints: BoxConstraints(),
               ),
-              // 항목 추가 버튼
               IconButton(
                 icon: Icon(Icons.add, color: AppColors.primary, size: 20),
                 onPressed: _showAddItemDialog,
@@ -378,7 +350,6 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
             ],
           ),
           Divider(),
-          // 항목 목록
           Expanded(
             child: _items.isEmpty
                 ? Center(
@@ -403,6 +374,7 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     );
   }
 
+  /// 편집 가능한 항목 위젯 구성
   Widget _buildEditableItem(Map<String, dynamic> item, int index) {
     final TextEditingController controller =
     TextEditingController(text: item['text']);
@@ -435,6 +407,7 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
     );
   }
 
+  /// 체크 가능한 항목 위젯 구성
   Widget _buildCheckableItem(Map<String, dynamic> item, int index) {
     return CheckboxListTile(
       controlAffinity: ListTileControlAffinity.leading,

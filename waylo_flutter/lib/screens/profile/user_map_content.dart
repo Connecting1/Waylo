@@ -396,7 +396,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
         print("[ERROR] 사용자 피드 로드 실패");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("사용자의 피드를 불러오는데 실패했습니다.")),
+            SnackBar(content: Text("Failed to load user's feeds.")),
           );
         }
       }
@@ -404,7 +404,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
       print("[ERROR] 사용자 피드 로드 오류: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("사용자의 피드 데이터를 로드하는 중 오류가 발생했습니다.")),
+          SnackBar(content: Text("An error occurred while loading user's feed data.")),
         );
       }
     } finally {
@@ -799,7 +799,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
                   ),
                   SizedBox(width: 8),
                   Text(
-                    "피드 로드 중...",
+                    "Loading feeds...",
                     style: TextStyle(color: Colors.white, fontSize: 12),
                   ),
                 ],

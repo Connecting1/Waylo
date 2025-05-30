@@ -1,4 +1,3 @@
-// lib/screen/main/setting_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/theme_provider.dart';
@@ -32,198 +31,146 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
-            ? AppColors.darkSurface
-            : AppColors.primary,
-        title: const Text(
-          "Settings",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        centerTitle: true,
+      appBar: _buildAppBar(),
+      body: _isLoading ? _buildLoadingState() : _buildSettingsList(),
+    );
+  }
+
+  /// AppBar 구성
+  AppBar _buildAppBar() {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+          ? AppColors.darkSurface
+          : AppColors.primary,
+      title: const Text(
+        "Settings",
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
       ),
-      body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : ListView(
-        children: [
-          _buildSectionHeader("Account Settings"),
-          _buildSettingItem(
-            icon: Icons.camera_alt,
-            title: "Change Profile Picture",
-            onTap: () {
-              // ProfilePictureScreen으로 이동 (새로 만들어야 함)
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ProfilePictureScreen()),
-              );
-            },
-          ),
-          _buildSettingItem(
-            icon: Icons.person,
-            title: "Change Username",
-            onTap: () {
-              // UsernameEditScreen으로 이동 (새로 만들어야 함)
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => UsernameEditScreen()),
-              );
-            },
-          ),
-          _buildSettingItem(
-            icon: Icons.lock_outline,
-            title: "Account Privacy",
-            subtitle: _getPrivacySubtitle(), // 현재 설정 표시
-            onTap: () {
-              // AccountPrivacyScreen으로 이동 (새로 만들어야 함)
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => AccountPrivacyScreen()),
-              );
-            },
-          ),
-          // _buildSettingItem(
-          //   icon: Icons.lock,
-          //   title: "Change Password",
-          //   onTap: () {
-          //     // 비밀번호 변경 화면으로 이동
-          //   },
-          // ),
+      centerTitle: true,
+    );
+  }
 
-          _buildSectionHeader("Notification Settings"),
+  /// 로딩 상태 위젯
+  Widget _buildLoadingState() {
+    return Center(child: CircularProgressIndicator());
+  }
 
-          // _buildSwitchItem(
-          //   icon: Icons.notifications,
-          //   title: "Push Notifications",
-          //   value: true,
-          //   onChanged: (value) {
-          //     // 푸시 알림 설정 저장
-          //   },
-          // ),
-          // _buildSwitchItem(
-          //   icon: Icons.favorite,
-          //   title: "Like Notifications",
-          //   value: true,
-          //   onChanged: (value) {
-          //     // 좋아요 알림 설정 저장
-          //   },
-          // ),
-          // _buildSwitchItem(
-          //   icon: Icons.comment,
-          //   title: "Comment Notifications",
-          //   value: true,
-          //   onChanged: (value) {
-          //     // 댓글 알림 설정 저장
-          //   },
-          // ),
+  /// 설정 목록 구성
+  Widget _buildSettingsList() {
+    return ListView(
+      children: [
+        ..._buildAccountSettings(),
+        ..._buildNotificationSettings(),
+        ..._buildAppSettings(),
+        ..._buildSupportSettings(),
+        _buildLogoutButton(),
+        SizedBox(height: 20),
+      ],
+    );
+  }
 
-          _buildSettingItem(
-            icon: Icons.location_on,
-            title: "Location Sharing",
-            subtitle: "Manage location visibility settings",
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => LocationSettingsScreen()),
-              );
-            },
-          ),
-          // _buildSettingItem(
-          //   icon: Icons.public,
-          //   title: "Post Privacy",
-          //   subtitle: "Default: Public",
-          //   onTap: () {
-          //     // 피드 게시물 공개 범위 설정 화면으로 이동
-          //   },
-          // ),
+  /// 계정 설정 섹션
+  List<Widget> _buildAccountSettings() {
+    return [
+      _buildSectionHeader("Account Settings"),
+      _buildSettingItem(
+        icon: Icons.camera_alt,
+        title: "Change Profile Picture",
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePictureScreen())),
+      ),
+      _buildSettingItem(
+        icon: Icons.person,
+        title: "Change Username",
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => UsernameEditScreen())),
+      ),
+      _buildSettingItem(
+        icon: Icons.lock_outline,
+        title: "Account Privacy",
+        subtitle: _getPrivacySubtitle(),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AccountPrivacyScreen())),
+      ),
+    ];
+  }
 
-          _buildSectionHeader("App Settings"),
-          _buildSettingItem(
-            icon: Icons.language,
-            title: "Language",
-            subtitle: "English",
-            onTap: () {
-              // 언어 설정 화면으로 이동
-            },
-          ),
-          _buildSettingItem(
-            icon: Icons.dark_mode,
-            title: "Theme",
-            subtitle: Provider.of<ThemeProvider>(context).useSystemTheme
-                ? "System (${Provider.of<ThemeProvider>(context).isDarkMode ? 'Dark Mode' : 'Light Mode'})"
-                : Provider.of<ThemeProvider>(context).isDarkMode
-                ? "Dark Mode"
-                : "Light Mode",
-            onTap: () {
-              // 테마 설정 화면으로 이동
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => ThemeSettingsScreen()),
-              );
-            },
-          ),
+  /// 알림 설정 섹션
+  List<Widget> _buildNotificationSettings() {
+    return [
+      _buildSectionHeader("Notification Settings"),
+      _buildSettingItem(
+        icon: Icons.location_on,
+        title: "Location Sharing",
+        subtitle: "Manage location visibility settings",
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LocationSettingsScreen())),
+      ),
+    ];
+  }
 
-          _buildSectionHeader("Support & Information"),
-          _buildSettingItem(
-            icon: Icons.help_outline,
-            title: "Help",
-            onTap: () {
-              // 도움말 화면으로 이동
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => HelpScreen()),
-              );
-            },
-          ),
-          _buildSettingItem(
-            icon: Icons.privacy_tip_outlined,
-            title: "Privacy Policy",
-            onTap: () {
-              // 개인정보 처리방침 화면으로 이동
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => PrivacyPolicyScreen()),
-              );
-            },
-          ),
-          _buildSettingItem(
-            icon: Icons.info_outline,
-            title: "App Version",
-            subtitle: "v1.0.0",
-            onTap: () {
-              // 앱 버전 정보 화면으로 이동
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => AppVersionScreen()),
-              );
-            },
-          ),
+  /// 앱 설정 섹션
+  List<Widget> _buildAppSettings() {
+    return [
+      _buildSectionHeader("App Settings"),
+      _buildSettingItem(
+        icon: Icons.language,
+        title: "Language",
+        subtitle: "English",
+        onTap: () {
+          // 언어 설정 기능 추후 구현
+        },
+      ),
+      _buildSettingItem(
+        icon: Icons.dark_mode,
+        title: "Theme",
+        subtitle: _getThemeSubtitle(),
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ThemeSettingsScreen())),
+      ),
+    ];
+  }
 
-          // 로그아웃 버튼
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20.0),
-              child: GestureDetector(
-                onTap: () {
-                  _showLogoutConfirmDialog();
-                },
-                child: Text(
-                  "Logout",
-                  style: TextStyle(
-                    color: Colors.red,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
+  /// 지원 및 정보 섹션
+  List<Widget> _buildSupportSettings() {
+    return [
+      _buildSectionHeader("Support & Information"),
+      _buildSettingItem(
+        icon: Icons.help_outline,
+        title: "Help",
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HelpScreen())),
+      ),
+      _buildSettingItem(
+        icon: Icons.privacy_tip_outlined,
+        title: "Privacy Policy",
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyScreen())),
+      ),
+      _buildSettingItem(
+        icon: Icons.info_outline,
+        title: "App Version",
+        subtitle: "v1.0.0",
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AppVersionScreen())),
+      ),
+    ];
+  }
+
+  /// 로그아웃 버튼
+  Widget _buildLogoutButton() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        child: GestureDetector(
+          onTap: _showLogoutConfirmDialog,
+          child: Text(
+            "Logout",
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }
 
+  /// 섹션 헤더 위젯
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
@@ -238,6 +185,7 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
     );
   }
 
+  /// 설정 아이템 위젯
   Widget _buildSettingItem({
     required IconData icon,
     required String title,
@@ -253,25 +201,7 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
     );
   }
 
-  Widget _buildSwitchItem({
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required bool value,
-    required Function(bool) onChanged,
-  }) {
-    return ListTile(
-      leading: Icon(icon, color: Colors.grey[700]),
-      title: Text(title),
-      subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: Switch(
-        value: value,
-        onChanged: onChanged,
-        activeColor: AppColors.primary,
-      ),
-    );
-  }
-
+  /// 개인정보 보호 설정 부제목 가져오기
   String _getPrivacySubtitle() {
     final userProvider = Provider.of<UserProvider>(context);
     return userProvider.accountVisibility == 'public'
@@ -279,32 +209,16 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
         : "Private Account";
   }
 
-  void _showClearCacheDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text("Clear Cache"),
-        content: Text("Are you sure you want to clear the app cache?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
-          ),
-          TextButton(
-            onPressed: () {
-              // 캐시 정리 로직 구현
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text("Cache has been cleared.")),
-              );
-            },
-            child: Text("Confirm"),
-          ),
-        ],
-      ),
-    );
+  /// 테마 설정 부제목 가져오기
+  String _getThemeSubtitle() {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    if (themeProvider.useSystemTheme) {
+      return "System (${themeProvider.isDarkMode ? 'Dark Mode' : 'Light Mode'})";
+    }
+    return themeProvider.isDarkMode ? "Dark Mode" : "Light Mode";
   }
 
+  /// 로그아웃 확인 다이얼로그 표시
   void _showLogoutConfirmDialog() {
     showDialog(
       context: context,
@@ -328,13 +242,13 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
     );
   }
 
+  /// 로그아웃 처리
   void _handleLogout() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // 모든 Provider 초기화
       Provider.of<SignUpProvider>(context, listen: false).logout();
       Provider.of<FeedMapProvider>(context, listen: false).reset();
       Provider.of<CanvasProvider>(context, listen: false).reset();
@@ -343,7 +257,6 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
       Provider.of<ThemeProvider>(context, listen: false).reset();
       Provider.of<LocationSettingsProvider>(context, listen: false).reset();
 
-      // 로그인 화면으로 이동
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => SignUpStartPage()),

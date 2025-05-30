@@ -1,10 +1,8 @@
-// lib/screen/auth/sign_up_email.dart
 import 'package:flutter/material.dart';
 import 'sign_up_password.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
 import '../../styles/app_styles.dart';
-
 
 class SignUpEmailPage extends StatefulWidget {
   const SignUpEmailPage({super.key});
@@ -17,7 +15,7 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
   final TextEditingController _emailController = TextEditingController();
   bool _isEmailValid = false;
 
-  // 이메일 유효성 검사 함수
+  /// 이메일 유효성 검사
   void _validateEmail(String email) {
     final RegExp emailRegex = RegExp(
       r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
@@ -28,22 +26,17 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
     });
   }
 
-  // 다음 페이지로 이동
+  /// 패스워드 입력 페이지로 이동
   Future<void> _goToPasswordPage(BuildContext context) async {
     if (_isEmailValid) {
       final email = _emailController.text;
 
-      // 이메일을 전역 상태(Provider)에 저장하도록 변경
+      // 이메일을 Provider에 저장
       Provider.of<SignUpProvider>(context, listen: false).setEmail(email);
 
-      // SignUpPhoneVerificationPage로 이동하는 코드를 제거 (더 이상 필요 없음)
-
-      // 화면 이동은 SignUpPasswordPage로 직접 이동
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => SignUpPasswordPage(),
-        ),
+        MaterialPageRoute(builder: (context) => SignUpPasswordPage()),
       );
     }
   }
@@ -55,13 +48,8 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Create account",
@@ -72,9 +60,8 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56, // 기본 AppBar 높이
+        toolbarHeight: 56,
       ),
-
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20),
         child: Column(
@@ -90,11 +77,11 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
             ),
             TextField(
               controller: _emailController,
-              onChanged: _validateEmail, // 이메일 입력값이 변경될 때 유효성 검사 실행
+              onChanged: _validateEmail,
               style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: Colors.white, // 입력 필드 배경색
+                fillColor: Colors.white,
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
@@ -105,12 +92,12 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
                   horizontal: 20.0,
                 ),
               ),
-              keyboardType: TextInputType.emailAddress, // 이메일 키보드 적용
+              keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 30), // 버튼과 간격 추가
+            const SizedBox(height: 30),
             Center(
               child: SizedBox(
-                width: 100, // 버튼 크기 조정
+                width: 100,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isEmailValid ? () => _goToPasswordPage(context) : null,

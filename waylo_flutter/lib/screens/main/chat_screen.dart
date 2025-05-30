@@ -1,4 +1,3 @@
-// lib/screen/main/chat_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/providers/chat_provider.dart';
@@ -16,19 +15,17 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
   @override
   void initState() {
     super.initState();
-    // 화면이 생성될 때 채팅방 목록 로드
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ChatProvider>(context, listen: false).loadChatRooms();
     });
   }
 
+  /// 프로필 이미지 URL 변환
   String _getFullProfileImageUrl(String profileImage) {
     if (profileImage.isEmpty) return '';
 
-    // 이미 전체 URL인 경우
     if (profileImage.startsWith('http')) return profileImage;
 
-    // 상대 경로를 전체 URL로 변환 - ApiService.baseUrl 사용
     if (profileImage.startsWith('/')) {
       return "${ApiService.baseUrl}$profileImage";
     }
@@ -41,87 +38,83 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
     return Consumer<ChatProvider>(
       builder: (context, chatProvider, child) {
         return Scaffold(
-          // backgroundColor: Colors.white,
-          // appBar: AppBar(
-          //   backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
-          //       ? AppColors.darkSurface
-          //       : AppColors.primary,
-          //   automaticallyImplyLeading: false,
-          //   title: const Text(
-          //     "Chat",
-          //     style: TextStyle(
-          //       fontSize: 20,
-          //       fontWeight: FontWeight.bold,
-          //       color: Colors.white,
-          //     ),
-          //   ),
-          //   centerTitle: true, // Chat 문구를 중앙으로 정렬
-          //   elevation: 0,
-          //   bottom: PreferredSize(
-          //     preferredSize: Size.fromHeight(1),
-          //     child: Container(
-          //       height: 1,
-          //       color: Colors.grey[200],
-          //     ),
-          //   ),
-          // ),
-          appBar: AppBar(
-            automaticallyImplyLeading: false,
-            backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
-                ? AppColors.darkSurface
-                : AppColors.primary,
-            title: const Text(
-              "Chat",
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            centerTitle: true,
-          ),
+          appBar: _buildAppBar(),
           body: _buildChatRoomsList(chatProvider),
         );
       },
     );
   }
 
+  /// AppBar 구성
+  AppBar _buildAppBar() {
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+          ? AppColors.darkSurface
+          : AppColors.primary,
+      title: const Text(
+        "Chat",
+        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+      ),
+      centerTitle: true,
+    );
+  }
+
+  /// 채팅방 목록 위젯
   Widget _buildChatRoomsList(ChatProvider chatProvider) {
-    // 로딩 중
     if (chatProvider.isLoading) {
-      return Center(child: CircularProgressIndicator());
+      return _buildLoadingState();
     }
 
-    // 오류 발생
     if (chatProvider.errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(chatProvider.errorMessage),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                chatProvider.loadChatRooms();
-              },
-              child: Text('Try Again'),
-            ),
-          ],
-        ),
-      );
+      return _buildErrorState(chatProvider);
     }
 
-    // 채팅방 없음
     if (chatProvider.rooms.isEmpty) {
-      return Center(
-        child: Text(
-          'No chat rooms available.\nFind friends and start a conversation!',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.grey[600],
-            fontSize: 16,
-          ),
-        ),
-      );
+      return _buildEmptyState();
     }
 
-    // 채팅방 목록
+    return _buildRoomsList(chatProvider);
+  }
+
+  /// 로딩 상태 위젯
+  Widget _buildLoadingState() {
+    return Center(child: CircularProgressIndicator());
+  }
+
+  /// 에러 상태 위젯
+  Widget _buildErrorState(ChatProvider chatProvider) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(chatProvider.errorMessage),
+          SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: () => chatProvider.loadChatRooms(),
+            child: Text('Try Again'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 빈 상태 위젯
+  Widget _buildEmptyState() {
+    return Center(
+      child: Text(
+        'No chat rooms available.\nFind friends and start a conversation!',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Colors.grey[600],
+          fontSize: 16,
+        ),
+      ),
+    );
+  }
+
+  /// 채팅방 목록 위젯
+  Widget _buildRoomsList(ChatProvider chatProvider) {
     return RefreshIndicator(
       onRefresh: () => chatProvider.loadChatRooms(),
       child: Padding(
@@ -130,68 +123,84 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
           itemCount: chatProvider.rooms.length,
           itemBuilder: (context, index) {
             final room = chatProvider.rooms[index];
-            return Container(
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: Colors.grey[200]!,
-                    width: 1,
-                  ),
-                ),
-              ),
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundImage: room.friendProfileImage.isNotEmpty
-                      ? NetworkImage(_getFullProfileImageUrl(room.friendProfileImage))
-                      : null,
-                  backgroundColor: Colors.grey[300],
-                  child: room.friendProfileImage.isEmpty
-                      ? Icon(Icons.person, color: Colors.grey[600])
-                      : null,
-                ),
-                title: Text(room.friendName),
-                subtitle: Text(
-                  room.lastMessage ?? 'No messages',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                trailing: room.unreadCount > 0
-                    ? Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    room.unreadCount.toString(),
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 12,
-                    ),
-                  ),
-                )
-                    : null,
-                onTap: () {
-                  // 채팅방 화면으로 이동
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ChatRoomScreen(
-                        roomId: room.id,
-                        friendName: room.friendName,
-                        friendProfileImage: room.friendProfileImage,
-                      ),
-                    ),
-                  ).then((_) {
-                    // 뒤로 왔을 때 목록 새로고침
-                    chatProvider.loadChatRooms();
-                  });
-                },
-              ),
-            );
+            return _buildChatRoomItem(room, chatProvider);
           },
         ),
       ),
     );
+  }
+
+  /// 개별 채팅방 아이템 위젯
+  Widget _buildChatRoomItem(dynamic room, ChatProvider chatProvider) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: Colors.grey[200]!,
+            width: 1,
+          ),
+        ),
+      ),
+      child: ListTile(
+        leading: _buildProfileAvatar(room),
+        title: Text(room.friendName),
+        subtitle: Text(
+          room.lastMessage ?? 'No messages',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: _buildUnreadBadge(room),
+        onTap: () => _navigateToChatRoom(room, chatProvider),
+      ),
+    );
+  }
+
+  /// 프로필 아바타 위젯
+  Widget _buildProfileAvatar(dynamic room) {
+    return CircleAvatar(
+      backgroundImage: room.friendProfileImage.isNotEmpty
+          ? NetworkImage(_getFullProfileImageUrl(room.friendProfileImage))
+          : null,
+      backgroundColor: Colors.grey[300],
+      child: room.friendProfileImage.isEmpty
+          ? Icon(Icons.person, color: Colors.grey[600])
+          : null,
+    );
+  }
+
+  /// 읽지 않은 메시지 배지 위젯
+  Widget? _buildUnreadBadge(dynamic room) {
+    if (room.unreadCount <= 0) return null;
+
+    return Container(
+      padding: const EdgeInsets.all(6),
+      decoration: BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+      ),
+      child: Text(
+        room.unreadCount.toString(),
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  /// 채팅방으로 이동
+  void _navigateToChatRoom(dynamic room, ChatProvider chatProvider) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatRoomScreen(
+          roomId: room.id,
+          friendName: room.friendName,
+          friendProfileImage: room.friendProfileImage,
+        ),
+      ),
+    ).then((_) {
+      chatProvider.loadChatRooms();
+    });
   }
 }

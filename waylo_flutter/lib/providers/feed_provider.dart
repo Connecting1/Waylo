@@ -1,33 +1,31 @@
-// lib/providers/feed_provider.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/feed.dart';
 import 'package:waylo_flutter/models/feed_comment.dart';
 import 'package:waylo_flutter/services/api/feed_api.dart';
-
 import '../services/api/api_service.dart';
 
+/// 피드 데이터와 관련 기능을 관리하는 Provider
 class FeedProvider extends ChangeNotifier {
-  List<Feed> _feeds = [];
-  List<Feed> _nearbyFeeds = [];
-  List<Feed> _userFeeds = [];
-  List<Feed> _bookmarkedFeeds = [];
-  List<Feed> _friendsFeeds = [];
+  List<Feed> _feeds = [];                               // 전체 피드 목록
+  List<Feed> _nearbyFeeds = [];                         // 주변 피드 목록
+  List<Feed> _userFeeds = [];                           // 사용자 피드 목록
+  List<Feed> _bookmarkedFeeds = [];                     // 북마크한 피드 목록
+  List<Feed> _friendsFeeds = [];                        // 친구들의 피드 목록
 
-  Feed? _currentFeed;
-  List<FeedComment> _comments = [];
+  Feed? _currentFeed;                                   // 현재 선택된 피드
+  List<FeedComment> _comments = [];                     // 댓글 목록
 
-  bool _isLoading = false;
-  bool _hasMoreFeeds = true;
-  bool _hasMoreNearbyFeeds = true;
-  bool _hasMoreUserFeeds = true;
-  bool _hasMoreBookmarkedFeeds = true;
-  bool _hasMoreComments = true;
-  bool _hasMoreFriendsFeeds = true;
+  bool _isLoading = false;                              // 로딩 상태
+  bool _hasMoreFeeds = true;                            // 더 많은 피드 존재 여부
+  bool _hasMoreNearbyFeeds = true;                      // 더 많은 주변 피드 존재 여부
+  bool _hasMoreUserFeeds = true;                        // 더 많은 사용자 피드 존재 여부
+  bool _hasMoreBookmarkedFeeds = true;                  // 더 많은 북마크 피드 존재 여부
+  bool _hasMoreComments = true;                         // 더 많은 댓글 존재 여부
+  bool _hasMoreFriendsFeeds = true;                     // 더 많은 친구 피드 존재 여부
 
-  String _errorMessage = '';
+  String _errorMessage = '';                            // 에러 메시지
 
-  // Getters
   List<Feed> get feeds => _feeds;
   List<Feed> get nearbyFeeds => _nearbyFeeds;
   List<Feed> get userFeeds => _userFeeds;
@@ -44,7 +42,7 @@ class FeedProvider extends ChangeNotifier {
   bool get hasMoreFriendsFeeds => _hasMoreFriendsFeeds;
   String get errorMessage => _errorMessage;
 
-  // 모든 피드 가져오기
+  /// 모든 피드 가져오기
   Future<void> fetchFeeds({bool refresh = false, int page = 1, int limit = 10}) async {
     if (_isLoading) return;
 
@@ -90,7 +88,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  // 친구들의 피드 가져오기 함수 추가
+  /// 친구들의 피드 가져오기
   Future<void> fetchFriendsFeeds({bool refresh = false, int page = 1, int limit = 10}) async {
     if (_isLoading) return;
 
@@ -136,7 +134,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  // 주변 피드 가져오기
+  /// 주변 피드 가져오기
   Future<void> fetchNearbyFeeds({
     required double latitude,
     required double longitude,
@@ -195,7 +193,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  // 피드 생성
+  /// 피드 생성
   Future<bool> createFeed({
     required double latitude,
     required double longitude,
@@ -231,7 +229,6 @@ class FeedProvider extends ChangeNotifier {
         return false;
       }
 
-      // 새로운 피드 생성 후 피드 목록 새로고침
       await fetchFeeds(refresh: true);
       return true;
     } catch (e) {
@@ -243,7 +240,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  // 좋아요/북마크 관련 메소드들 추가
+  /// 피드 좋아요 토글
   Future<bool> toggleLike(Feed feed) async {
     try {
       Map<String, dynamic> response;
@@ -260,7 +257,6 @@ class FeedProvider extends ChangeNotifier {
         return false;
       }
 
-      // 피드 정보 업데이트
       await _updateFeedLikeStatus(feed.id, !feed.isLiked, response['likes_count']);
       return true;
     } catch (e) {
@@ -269,6 +265,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
+  /// 피드 북마크 토글
   Future<bool> toggleBookmark(Feed feed) async {
     try {
       Map<String, dynamic> response;
@@ -285,7 +282,6 @@ class FeedProvider extends ChangeNotifier {
         return false;
       }
 
-      // 피드 정보 업데이트
       await _updateFeedBookmarkStatus(feed.id, !feed.isBookmarked, response['bookmarks_count']);
       return true;
     } catch (e) {
@@ -294,7 +290,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  // 내부 도우미 메소드: 피드 좋아요 상태 업데이트
+  /// 피드 좋아요 상태 업데이트
   Future<void> _updateFeedLikeStatus(String feedId, bool isLiked, int likesCount) async {
     _updateFeedInList(_feeds, feedId, isLiked, likesCount, null, null);
     _updateFeedInList(_nearbyFeeds, feedId, isLiked, likesCount, null, null);
@@ -328,7 +324,7 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 내부 도우미 메소드: 피드 북마크 상태 업데이트
+  /// 피드 북마크 상태 업데이트
   Future<void> _updateFeedBookmarkStatus(String feedId, bool isBookmarked, int bookmarksCount) async {
     _updateFeedInList(_feeds, feedId, null, null, isBookmarked, bookmarksCount);
     _updateFeedInList(_nearbyFeeds, feedId, null, null, isBookmarked, bookmarksCount);
@@ -362,7 +358,7 @@ class FeedProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 내부 도우미 메소드: 피드 목록 업데이트
+  /// 피드 목록에서 특정 피드 정보 업데이트
   void _updateFeedInList(List<Feed> feeds, String feedId, bool? isLiked, int? likesCount, bool? isBookmarked, int? bookmarksCount) {
     final index = feeds.indexWhere((feed) => feed.id == feedId);
     if (index != -1) {
@@ -391,7 +387,7 @@ class FeedProvider extends ChangeNotifier {
     }
   }
 
-  // 상태 초기화
+  /// Provider 상태 초기화
   void reset() {
     _feeds = [];
     _nearbyFeeds = [];

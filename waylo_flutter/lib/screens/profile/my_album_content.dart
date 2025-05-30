@@ -53,7 +53,7 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
       // 오류 메시지 표시
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("데이터를 불러오는 중 오류가 발생했습니다."))
+            SnackBar(content: Text("An error occurred while loading data."))
         );
       }
     } finally {

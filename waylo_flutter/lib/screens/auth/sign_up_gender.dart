@@ -1,4 +1,3 @@
-// lib/screen/auth/sign_up_gender.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -16,15 +15,15 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
   String? _selectedGender;
   bool _isGenderSelected = false;
 
-  // 이메일 유효성 검사 함수
+  /// 성별 선택 처리
   void _onGenderSelected(String? gender) {
     setState(() {
       _selectedGender = gender;
-      _isGenderSelected = gender != null; // 성별이 선택되었으면 버튼 활성화
+      _isGenderSelected = gender != null;
     });
   }
 
-  // 다음 페이지로 이동
+  /// 사용자명 입력 페이지로 이동
   Future<void> _goToPasswordPage(BuildContext context) async {
     if (_isGenderSelected) {
       Provider.of<SignUpProvider>(context, listen: false).setGender(_selectedGender!);
@@ -43,13 +42,8 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back,
-            color: Colors.white,
-          ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Create account",
@@ -60,9 +54,8 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56, // 기본 AppBar 높이
+        toolbarHeight: 56,
       ),
-
       body: Padding(
         padding: const EdgeInsets.only(left: 20, right: 20),
         child: Column(
@@ -77,26 +70,26 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
               ),
             ),
             Container(
-              height: 60, // <-- 날짜 입력 필드와 동일한 높이
+              height: 60,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20), // <-- 내부 패딩 조정 (날짜 입력 필드와 동일)
+                padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedGender,
                     hint: const Text(
                       "Select your gender",
-                      style: TextStyle(color: Colors.grey, fontSize: 16), // <-- 폰트 크기 맞춤
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
                     ),
                     items: ["Male", "Female", "Non-binary", "Other", "Prefer not to say"].map((String gender) {
                       return DropdownMenuItem<String>(
                         value: gender,
                         child: Text(
                           gender,
-                          style: const TextStyle(fontSize: 16), // <-- 리스트 아이템 폰트 크기 맞춤
+                          style: const TextStyle(fontSize: 16),
                         ),
                       );
                     }).toList(),
@@ -106,10 +99,10 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 30), // 버튼과 간격 추가
+            const SizedBox(height: 30),
             Center(
               child: SizedBox(
-                width: 100, // 버튼 크기 조정
+                width: 100,
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isGenderSelected ? () => _goToPasswordPage(context) : null,

@@ -1,7 +1,7 @@
-// lib/widget/custom_widgets/profile_image_widget.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/album_widget.dart';
 
+/// 프로필 이미지를 표시하는 위젯 (원형 또는 사각형)
 class ProfileImageWidget extends StatefulWidget {
   final AlbumWidget widget;
   const ProfileImageWidget({Key? key, required this.widget}) : super(key: key);
@@ -11,7 +11,6 @@ class ProfileImageWidget extends StatefulWidget {
 }
 
 class _ProfileImageWidgetState extends State<ProfileImageWidget> {
-  // 이미지 로드 여부를 추적하는 정적 맵
   static Map<String, bool> _loadedImages = {};
   late ImageProvider _imageProvider;
   bool _isLoaded = false;
@@ -21,7 +20,6 @@ class _ProfileImageWidgetState extends State<ProfileImageWidget> {
     super.initState();
     String imageUrl = widget.widget.extraData['image_url'] ?? '';
 
-    // 이미 로드된 이미지인지 확인
     if (imageUrl.isNotEmpty && !_loadedImages.containsKey(imageUrl)) {
       _imageProvider = NetworkImage(imageUrl);
       _loadedImages[imageUrl] = true;
@@ -38,7 +36,6 @@ class _ProfileImageWidgetState extends State<ProfileImageWidget> {
     String borderColor = widget.widget.extraData['border_color'] ?? '#FFFFFF';
     double borderWidth = widget.widget.extraData['border_width']?.toDouble() ?? 2.0;
 
-    // 16진수 색상 코드를 Color 객체로 변환
     Color color;
     try {
       color = Color(int.parse(borderColor.substring(1, 7), radix: 16) + 0xFF000000);
@@ -46,15 +43,12 @@ class _ProfileImageWidgetState extends State<ProfileImageWidget> {
       color = Colors.white;
     }
 
-    // 이미지 위젯 생성
     Widget imageWidget = imageUrl.isNotEmpty
         ? Image.network(
       imageUrl,
       fit: BoxFit.cover,
-      // 첫 로드 시에만 로딩 표시기 보이기
       loadingBuilder: (context, child, loadingProgress) {
         if (loadingProgress == null) {
-          // 로딩 완료 시
           if (!_isLoaded) {
             Future.microtask(() {
               if (mounted) setState(() {
@@ -64,11 +58,9 @@ class _ProfileImageWidgetState extends State<ProfileImageWidget> {
           }
           return child;
         }
-        // 이미 로드된 이미지는 로딩 표시기 없이 바로 표시
         if (_isLoaded) {
           return child;
         }
-        // 첫 로드 시에만 로딩 표시
         return Center(
           child: CircularProgressIndicator(
             value: loadingProgress.expectedTotalBytes != null
@@ -78,7 +70,6 @@ class _ProfileImageWidgetState extends State<ProfileImageWidget> {
         );
       },
       errorBuilder: (context, error, stackTrace) {
-        print("[ERROR] 이미지 로드 실패: $imageUrl, 오류: $error");
         return Container(
           color: Colors.grey.shade300,
           child: Center(
@@ -89,7 +80,6 @@ class _ProfileImageWidgetState extends State<ProfileImageWidget> {
     )
         : Container(color: Colors.grey);
 
-    // 모양에 따라 다른 컨테이너 반환
     if (shape == 'circle') {
       return Container(
         width: widget.widget.width,
