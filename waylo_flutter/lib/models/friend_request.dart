@@ -1,3 +1,4 @@
+// lib/models/friend_request.dart
 import 'package:waylo_flutter/services/api/api_service.dart';
 
 class FriendRequest {

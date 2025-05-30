@@ -109,8 +109,8 @@ def feed_detail(request, feed_id):
 
         serializer = FeedSerializer(feed, context={'request': request})
 
-        # 댓글 조회
-        comments = FeedComment.objects.filter(feed=feed).order_by('-created_at')
+        # 댓글 조회 (최상위 댓글만)
+        comments = FeedComment.objects.filter(feed=feed, parent__isnull=True).order_by('-created_at')
         comment_serializer = FeedCommentSerializer(comments, many=True, context={'request': request})
 
         response_data = serializer.data
@@ -120,7 +120,6 @@ def feed_detail(request, feed_id):
 
     except Feed.DoesNotExist:
         return Response({'error': '피드를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
-
     except Exception:
         return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
@@ -543,8 +542,8 @@ def feed_comments(request, feed_id):
         if feed.visibility == 'private' and (not request.user.is_authenticated or feed.user != request.user):
             return Response({'error': '이 피드의 댓글을 볼 수 있는 권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
-        # 댓글 조회
-        comments = FeedComment.objects.filter(feed=feed).order_by('-created_at')
+        # 최상위 댓글만 조회 (parent가 None인 댓글)
+        comments = FeedComment.objects.filter(feed=feed, parent__isnull=True).order_by('-created_at')
 
         # 페이지네이션 적용
         page = int(request.query_params.get('page', 1))
@@ -567,8 +566,7 @@ def feed_comments(request, feed_id):
 
     except Feed.DoesNotExist:
         return Response({'error': '피드를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
-
-    except Exception:
+    except Exception as e:
         return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
@@ -578,7 +576,7 @@ def feed_comments(request, feed_id):
 @permission_classes([IsAuthenticated])
 def create_comment(request, feed_id):
     """
-    특정 피드에 댓글을 작성하는 API
+    특정 피드에 댓글이나 대댓글을 작성하는 API
     """
     try:
         feed = Feed.objects.get(id=feed_id)
@@ -588,24 +586,42 @@ def create_comment(request, feed_id):
             return Response({'error': '이 피드에 댓글을 작성할 권한이 없습니다.'}, status=status.HTTP_403_FORBIDDEN)
 
         content = request.data.get('content')
+        parent_id = request.data.get('parent_id')  # 추가: 부모 댓글 ID
+        
         if not content:
             return Response({'error': '댓글 내용을 입력해주세요.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # 댓글 생성
-        comment = FeedComment.objects.create(
-            feed=feed,
-            user=request.user,
-            content=content
-        )
+        # 댓글 생성 준비
+        comment_data = {
+            'feed': feed,
+            'user': request.user,
+            'content': content,
+            'parent': None  # 기본값은 None (일반 댓글)
+        }
+        
+        # 부모 댓글이 있는 경우 (대댓글)
+        if parent_id:
+            try:
+                parent_comment = FeedComment.objects.get(id=parent_id, feed=feed)
+                
+                # 대댓글의 대댓글은 허용하지 않음 (1단계만 허용)
+                if parent_comment.parent is not None:
+                    return Response({'error': '대댓글에는 댓글을 달 수 없습니다.'}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                comment_data['parent'] = parent_comment
+            except FeedComment.DoesNotExist:
+                return Response({'error': '부모 댓글을 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # 댓글 객체 생성
+        comment = FeedComment.objects.create(**comment_data)
 
         serializer = FeedCommentSerializer(comment, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     except Feed.DoesNotExist:
         return Response({'error': '피드를 찾을 수 없습니다.'}, status=status.HTTP_404_NOT_FOUND)
-
-    except Exception:
-        return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        return Response({'error': f'서버 오류가 발생했습니다: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # 댓글 삭제
@@ -841,3 +857,69 @@ def bookmarked_feeds(request):
 
     except Exception:
         return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+@api_view(['GET'])
+@authentication_classes([CustomTokenAuthentication])
+@permission_classes([IsAuthenticated])
+def friends_feeds(request):
+    """
+    현재 사용자의 친구들이 올린 피드 목록을 조회하는 API
+    """
+    try:
+        from friends.models import Friendship
+        from django.db.models import Q
+        
+        current_user = request.user
+        
+        # 현재 사용자의 친구들 찾기
+        friendships = Friendship.objects.filter(
+            Q(user1=current_user) | Q(user2=current_user)
+        )
+        
+        # 친구 ID 목록 추출
+        friend_ids = []
+        for friendship in friendships:
+            if friendship.user1.id == current_user.id:
+                friend_ids.append(friendship.user2.id)
+            else:
+                friend_ids.append(friendship.user1.id)
+        
+        # 친구가 없는 경우
+        if not friend_ids:
+            return Response({
+                'feeds': [],
+                'total': 0,
+                'page': 1,
+                'limit': 10
+            }, status=status.HTTP_200_OK)
+        
+        # 친구들의 공개 피드만 조회
+        feeds = Feed.objects.filter(
+            user__id__in=friend_ids,
+            visibility='public'
+        ).order_by('-created_at')
+        
+        # 페이지네이션 적용
+        page = int(request.query_params.get('page', 1))
+        limit = int(request.query_params.get('limit', 10))
+        start = (page - 1) * limit
+        end = page * limit
+        
+        serializer = FeedSerializer(
+            feeds[start:end], 
+            many=True, 
+            context={'request': request}
+        )
+        
+        return Response({
+            'feeds': serializer.data,
+            'total': feeds.count(),
+            'page': page,
+            'limit': limit
+        }, status=status.HTTP_200_OK)
+        
+    except Exception as e:
+        logger.error(f"친구 피드 조회 중 오류: {e}")
+        return Response({'error': '서버 오류가 발생했습니다.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+

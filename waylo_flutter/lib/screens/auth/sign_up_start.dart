@@ -1,6 +1,10 @@
+// lib/screen/auth/sign_up_start.dart
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:waylo_flutter/styles/app_styles.dart';
+import '../../services/api/user_api.dart';
+import '../main/main_tab.dart';
 import 'sign_up_email.dart';
 import 'sign_up_birth_date.dart';
 import 'sign_in.dart';
@@ -45,21 +49,42 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
       setState(() {
         _currentUser = user;
       });
+
       if (_currentUser != null) {
-        Provider.of<SignUpProvider>(context, listen: false)
-            .setEmail(_currentUser!.email);
-        Provider.of<SignUpProvider>(context, listen: false)
-            .setProvider("google");
-        Provider.of<SignUpProvider>(context, listen: false)
-            .setPassword(null);
+        // 기존 사용자인지 확인
+        final searchResponse = await UserApi.searchUsers(_currentUser!.email);
+        bool userExists = false;
 
-        print("Provider set to: ${Provider.of<SignUpProvider>(context, listen: false).provider}");
+        if (searchResponse is List) {
+          userExists = searchResponse.any((u) => u['email'] == _currentUser!.email);
+        }
 
-        print('Logged in as: ${_currentUser?.displayName}');
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const SignUpBirthDatePage()),
-        );
+        if (userExists) {
+          // 기존 사용자 - 로그인 처리
+          final loginResponse = await UserApi.loginUser(_currentUser!.email, "");
+
+          if (!loginResponse.containsKey('error')) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString('auth_token', loginResponse['auth_token']);
+            await prefs.setString('user_id', loginResponse['user_id']);
+            await prefs.setBool('is_logged_in', true);
+
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => MainTabPage()),
+            );
+          }
+        } else {
+          // 신규 사용자 - 회원가입
+          Provider.of<SignUpProvider>(context, listen: false).setEmail(_currentUser!.email);
+          Provider.of<SignUpProvider>(context, listen: false).setProvider("google");
+          Provider.of<SignUpProvider>(context, listen: false).setPassword(null);
+
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SignUpBirthDatePage()),
+          );
+        }
       }
     } catch (error) {
       print('Sign-In Error: $error');

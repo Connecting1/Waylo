@@ -136,8 +136,11 @@ def update_user_info(request, user_id):
 
     except User.DoesNotExist:
         return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-    except Exception:
-        return Response({"error": "서버 오류가 발생했습니다."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    except Exception as e:
+        import traceback
+        print(f"사용자 정보 업데이트 중 상세 오류: {e}")
+        print(f"스택 트레이스: {traceback.format_exc()}")
+        return Response({"error": f"서버 오류가 발생했습니다: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 # 프로필 이미지 업데이트

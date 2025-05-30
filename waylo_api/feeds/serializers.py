@@ -45,6 +45,7 @@ class FeedSerializer(serializers.ModelSerializer):
 class FeedCommentSerializer(serializers.ModelSerializer):
     user_details = serializers.SerializerMethodField()  # 유저 정보 추가
     is_liked = serializers.SerializerMethodField()  # 사용자가 댓글에 좋아요 눌렀는지 여부
+    replies = serializers.SerializerMethodField()  # 추가: 대댓글 목록
     
     class Meta:
         model = FeedComment
@@ -64,6 +65,20 @@ class FeedCommentSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return CommentLike.objects.filter(comment=obj, user=request.user).exists()
         return False
+    
+    # 추가: 대댓글 가져오기 메서드
+    def get_replies(self, obj):
+        """ 댓글의 대댓글 목록 반환 """
+        # 이미 대댓글인 경우 빈 리스트 반환 (중첩 방지)
+        if obj.parent is not None:
+            return []
+            
+        # 해당 댓글의 대댓글 조회
+        replies = FeedComment.objects.filter(parent=obj).order_by('created_at')
+        
+        # 대댓글 직렬화
+        serializer = FeedCommentSerializer(replies, many=True, context=self.context)
+        return serializer.data
 
 
 # 피드 좋아요 정보 직렬화

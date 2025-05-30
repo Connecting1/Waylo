@@ -1,3 +1,4 @@
+// lib/screen/auth/sign_up_birth_date.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -89,6 +90,7 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
             TextField(
               controller: _birthDateController,
               readOnly: true, // 직접 입력 불가능, 선택만 가능하도록 변경
+              style: const TextStyle(color: Colors.black),
               onTap: () => _selectBirthDate(context),
               decoration: InputDecoration(
                 filled: true,
@@ -112,18 +114,12 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isBirthDateValid ? () => _goToGenderPage(context) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isBirthDateValid ? Colors.white : Colors.grey, // 유효하지 않으면 회색
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // 버튼 모서리 둥글게
-                    ),
-                  ),
+                  style: ButtonStyles.formButtonStyle(context, isEnabled: _isBirthDateValid),
                   child: const Text(
                     "Next",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey, // 텍스트 색상
                     ),
                   ),
                 ),

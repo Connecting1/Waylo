@@ -53,6 +53,7 @@ dependencies:
   crop_your_image: ^0.7.5
   image: ^4.1.4
   intl: ^0.20.2
+  mapbox_search: ^4.3.1
 
 dev_dependencies:
   flutter_test:
@@ -74,6 +75,7 @@ flutter:
   assets:
     - assets/logos/logo.png
     - assets/logos/logo2.png
+    - assets/logos/logo3.png
     - assets/logos/google_logo.png
     - assets/logos/kakao_logo.png
     - assets/logos/facebook_logo.png

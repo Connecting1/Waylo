@@ -66,14 +66,16 @@ class FeedBookmark(models.Model):
 # 피드 댓글 정보 저장
 class FeedComment(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="comments")  # 댓글이 달린 피드
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")  # 댓글 작성 유저
-    content = models.TextField()  # 댓글 내용
-    created_at = models.DateTimeField(auto_now_add=True)  # 생성 시간
-    likes_count = models.PositiveIntegerField(default=0)  # 좋아요 수
+    feed = models.ForeignKey(Feed, on_delete=models.CASCADE, related_name="comments")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="comments")
+    parent = models.ForeignKey('self', on_delete=models.CASCADE, null=True, blank=True, related_name='replies')  # 추가: 부모 댓글
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    likes_count = models.PositiveIntegerField(default=0)
 
     class Meta:
-        db_table = 'feed_comments'  # 테이블 이름 지정
+        db_table = 'feed_comments'
+        ordering = ['created_at']
 
 
 # 댓글 좋아요 정보 저장

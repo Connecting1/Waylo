@@ -1,3 +1,4 @@
+// lib/providers/feed_provider.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/feed.dart';
@@ -11,6 +12,7 @@ class FeedProvider extends ChangeNotifier {
   List<Feed> _nearbyFeeds = [];
   List<Feed> _userFeeds = [];
   List<Feed> _bookmarkedFeeds = [];
+  List<Feed> _friendsFeeds = [];
 
   Feed? _currentFeed;
   List<FeedComment> _comments = [];
@@ -21,6 +23,7 @@ class FeedProvider extends ChangeNotifier {
   bool _hasMoreUserFeeds = true;
   bool _hasMoreBookmarkedFeeds = true;
   bool _hasMoreComments = true;
+  bool _hasMoreFriendsFeeds = true;
 
   String _errorMessage = '';
 
@@ -29,6 +32,7 @@ class FeedProvider extends ChangeNotifier {
   List<Feed> get nearbyFeeds => _nearbyFeeds;
   List<Feed> get userFeeds => _userFeeds;
   List<Feed> get bookmarkedFeeds => _bookmarkedFeeds;
+  List<Feed> get friendsFeeds => _friendsFeeds;
   Feed? get currentFeed => _currentFeed;
   List<FeedComment> get comments => _comments;
   bool get isLoading => _isLoading;
@@ -37,6 +41,7 @@ class FeedProvider extends ChangeNotifier {
   bool get hasMoreUserFeeds => _hasMoreUserFeeds;
   bool get hasMoreBookmarkedFeeds => _hasMoreBookmarkedFeeds;
   bool get hasMoreComments => _hasMoreComments;
+  bool get hasMoreFriendsFeeds => _hasMoreFriendsFeeds;
   String get errorMessage => _errorMessage;
 
   // 모든 피드 가져오기
@@ -79,6 +84,52 @@ class FeedProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = '피드 로드 중 오류가 발생했습니다: $e';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  // 친구들의 피드 가져오기 함수 추가
+  Future<void> fetchFriendsFeeds({bool refresh = false, int page = 1, int limit = 10}) async {
+    if (_isLoading) return;
+
+    if (refresh) {
+      _friendsFeeds = [];
+      _hasMoreFriendsFeeds = true;
+      page = 1;
+    }
+
+    if (!_hasMoreFriendsFeeds && !refresh) return;
+
+    _isLoading = true;
+    _errorMessage = '';
+    notifyListeners();
+
+    try {
+      final response = await FeedApi.fetchFriendsFeeds(page: page, limit: limit);
+
+      if (response is Map && response.containsKey('error')) {
+        _errorMessage = response['error'];
+        notifyListeners();
+        return;
+      }
+
+      if (response is Map && response.containsKey('feeds')) {
+        List<dynamic> feedsData = response['feeds'];
+        List<Feed> newFeeds = feedsData.map((data) => Feed.fromJson(data)).toList();
+
+        if (refresh) {
+          _friendsFeeds = newFeeds;
+        } else {
+          _friendsFeeds.addAll(newFeeds);
+        }
+
+        _hasMoreFriendsFeeds = newFeeds.length >= limit;
+        notifyListeners();
+      }
+    } catch (e) {
+      _errorMessage = '친구 피드 로드 중 오류가 발생했습니다: $e';
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -346,6 +397,7 @@ class FeedProvider extends ChangeNotifier {
     _nearbyFeeds = [];
     _userFeeds = [];
     _bookmarkedFeeds = [];
+    _friendsFeeds = [];
     _currentFeed = null;
     _comments = [];
     _isLoading = false;
@@ -353,6 +405,7 @@ class FeedProvider extends ChangeNotifier {
     _hasMoreNearbyFeeds = true;
     _hasMoreUserFeeds = true;
     _hasMoreBookmarkedFeeds = true;
+    _hasMoreFriendsFeeds = true;
     _hasMoreComments = true;
     _errorMessage = '';
     notifyListeners();

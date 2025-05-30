@@ -1,7 +1,9 @@
+// lib/screen/main/chat_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/providers/chat_provider.dart';
 import 'package:waylo_flutter/styles/app_styles.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/api/api_service.dart';
 import '../chat/chat_room_screen.dart';
 
@@ -39,27 +41,40 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
     return Consumer<ChatProvider>(
       builder: (context, chatProvider, child) {
         return Scaffold(
-          backgroundColor: Colors.white,
+          // backgroundColor: Colors.white,
+          // appBar: AppBar(
+          //   backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+          //       ? AppColors.darkSurface
+          //       : AppColors.primary,
+          //   automaticallyImplyLeading: false,
+          //   title: const Text(
+          //     "Chat",
+          //     style: TextStyle(
+          //       fontSize: 20,
+          //       fontWeight: FontWeight.bold,
+          //       color: Colors.white,
+          //     ),
+          //   ),
+          //   centerTitle: true, // Chat 문구를 중앙으로 정렬
+          //   elevation: 0,
+          //   bottom: PreferredSize(
+          //     preferredSize: Size.fromHeight(1),
+          //     child: Container(
+          //       height: 1,
+          //       color: Colors.grey[200],
+          //     ),
+          //   ),
+          // ),
           appBar: AppBar(
-            backgroundColor: AppColors.primary,
             automaticallyImplyLeading: false,
+            backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+                ? AppColors.darkSurface
+                : AppColors.primary,
             title: const Text(
               "Chat",
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
-            centerTitle: true, // Chat 문구를 중앙으로 정렬
-            elevation: 0,
-            bottom: PreferredSize(
-              preferredSize: Size.fromHeight(1),
-              child: Container(
-                height: 1,
-                color: Colors.grey[200],
-              ),
-            ),
+            centerTitle: true,
           ),
           body: _buildChatRoomsList(chatProvider),
         );

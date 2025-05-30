@@ -1,4 +1,4 @@
-// providers/user_provider.dart
+// lib/providers/user_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
 

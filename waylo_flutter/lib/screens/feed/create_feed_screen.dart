@@ -1,3 +1,4 @@
+// lib/screen/feed/create_feed_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -7,7 +8,9 @@ import 'package:waylo_flutter/styles/app_styles.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:intl/intl.dart';
-import 'package:waylo_flutter/screens/map/map_location_picker.dart'; // Import the new component
+import 'package:waylo_flutter/screens/map/map_location_picker.dart';
+
+import '../../providers/theme_provider.dart'; // Import the new component
 
 class FeedCreatePage extends StatefulWidget {
   final File imageFile;
@@ -376,7 +379,9 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primary,
+        backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+            ? AppColors.darkSurface
+            : AppColors.primary,
         title: Text(
           'Create Post',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),

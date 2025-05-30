@@ -1,3 +1,4 @@
+// lib/models/feed_comment.dart
 import 'package:waylo_flutter/services/api/api_service.dart';
 
 // 피드 댓글을 표현하는 클래스
@@ -11,6 +12,8 @@ class FeedComment {
   final DateTime createdAt;
   final int likesCount;
   final bool isLiked;
+  final String? parentId; // 추가: 부모 댓글 ID
+  final List<FeedComment> replies; // 추가: 대댓글 목록
 
   FeedComment({
     required this.id,
@@ -22,10 +25,20 @@ class FeedComment {
     required this.createdAt,
     required this.likesCount,
     required this.isLiked,
+    this.parentId, // 추가
+    this.replies = const [], // 추가: 기본값은 빈 배열
   });
 
   // JSON 데이터에서 FeedComment 객체 생성
   factory FeedComment.fromJson(Map<String, dynamic> json) {
+    // 대댓글 목록 파싱
+    List<FeedComment> parsedReplies = [];
+    if (json['replies'] != null) {
+      parsedReplies = (json['replies'] as List)
+          .map((replyJson) => FeedComment.fromJson(replyJson))
+          .toList();
+    }
+
     return FeedComment(
       id: json['id'] ?? '',
       feedId: json['feed'] ?? '',
@@ -38,6 +51,8 @@ class FeedComment {
           : DateTime.now(),
       likesCount: json['likes_count'] ?? 0,
       isLiked: json['is_liked'] ?? false,
+      parentId: json['parent'], // 부모 댓글 ID 추가
+      replies: parsedReplies, // 대댓글 목록 추가
     );
   }
 

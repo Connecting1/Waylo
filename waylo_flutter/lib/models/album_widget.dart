@@ -1,3 +1,4 @@
+// lib/models/album_widget.dart
 import 'dart:convert';
 
 class AlbumWidget {

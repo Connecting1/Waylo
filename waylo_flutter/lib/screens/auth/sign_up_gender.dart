@@ -1,3 +1,4 @@
+// lib/screen/auth/sign_up_gender.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -112,19 +113,12 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isGenderSelected ? () => _goToPasswordPage(context) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isGenderSelected ? Colors.white : Colors.grey, // 유효하지 않으면 회색
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // 버튼 모서리 둥글게
-                    ),
-                  ),
-                  child: Text(
+                  style: ButtonStyles.formButtonStyle(context, isEnabled: _isGenderSelected),
+                  child: const Text(
                     "Next",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      // color: _isEmailValid ? Colors.grey : Colors.white, // 텍스트 색상
-                      color: Colors.grey,
                     ),
                   ),
                 ),

@@ -1,3 +1,4 @@
+// lib/screen/auth/sign_in.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -103,10 +104,10 @@ class _SignInPageState extends State<SignInPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text("Email", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-            TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, decoration: _inputDecoration()),
+            TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Colors.black),decoration: _inputDecoration()),
             const SizedBox(height: 15),
             const Text("Password", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-            TextField(controller: _passwordController, obscureText: true, decoration: _inputDecoration()),
+            TextField(controller: _passwordController, obscureText: true, style: const TextStyle(color: Colors.black), decoration: _inputDecoration()),
             const SizedBox(height: 30),
             Center(
               child: SizedBox(
@@ -114,13 +115,10 @@ class _SignInPageState extends State<SignInPage> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleSignIn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                  ),
+                  style: ButtonStyles.formButtonStyle(context, isEnabled: !_isLoading),
                   child: _isLoading
-                      ? const CircularProgressIndicator()
-                      : const Text("Login", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+                      ? const CircularProgressIndicator(color: Colors.grey)
+                      : const Text("Login", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
               ),
             ),

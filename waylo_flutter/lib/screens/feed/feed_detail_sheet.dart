@@ -1,13 +1,16 @@
+// lib/screen/feed/feed_detail_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/models/feed.dart';
 import 'package:waylo_flutter/models/feed_comment.dart';
 import 'package:waylo_flutter/providers/feed_provider.dart';
 import 'package:waylo_flutter/providers/user_provider.dart';
+import 'package:waylo_flutter/providers/theme_provider.dart';
 import 'package:waylo_flutter/styles/app_styles.dart';
 import 'package:waylo_flutter/services/api/feed_api.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:waylo_flutter/screens/profile/user_profile_page.dart';
 
 class FeedDetailSheet extends StatefulWidget {
   final Feed feed;
@@ -28,6 +31,7 @@ class FeedDetailSheet extends StatefulWidget {
 class _FeedDetailSheetState extends State<FeedDetailSheet> {
   final TextEditingController _commentController = TextEditingController();
   final FocusNode _commentFocusNode = FocusNode(); // 추가: 댓글 입력 FocusNode
+  late ScrollController _scrollController = ScrollController(); // 스크롤 컨트롤러 추가
   List<FeedComment> _comments = [];
   bool _isLoadingComments = false;
   bool _isPostingComment = false;
@@ -36,6 +40,8 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
   int _likesCount = 0;
   int _bookmarksCount = 0;
   String? _currentUserId; // 현재 로그인한 사용자 ID
+  String? _replyingToCommentId; // 대댓글 작성 시 부모 댓글 ID 저장
+  String? _replyingToUsername; // 대댓글 대상 사용자 이름 저장
 
   @override
   void initState() {
@@ -94,7 +100,8 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
       if (response is Map && response.containsKey('comments')) {
         List<dynamic> commentsData = response['comments'];
         setState(() {
-          _comments = commentsData.map((data) => FeedComment.fromJson(data)).toList();
+          _comments =
+              commentsData.map((data) => FeedComment.fromJson(data)).toList();
         });
       }
     } catch (e) {
@@ -116,19 +123,24 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
   @override
   Widget build(BuildContext context) {
     // 현재 사용자가 피드 작성자인지 확인
-    bool isOwner = _currentUserId != null && _currentUserId == widget.feed.userId;
+    bool isOwner = _currentUserId != null &&
+        _currentUserId == widget.feed.userId;
 
     // 수정 버튼을 표시할지 여부 (showEditButton 프로퍼티 및 소유자 여부에 따라 결정)
     bool showEdit = widget.showEditButton && isOwner;
+    final themeProvider = Provider.of<ThemeProvider>(context);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.5,
       minChildSize: 0.3,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
+        // 스크롤 컨트롤러 업데이트
+        _scrollController = scrollController;
+
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: themeProvider.cardColor,
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(24),
               topRight: Radius.circular(24),
@@ -150,7 +162,7 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
                   width: 40,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: themeProvider.secondaryTextColor,
                     borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
@@ -166,31 +178,62 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
                       padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            backgroundImage: widget.feed.fullProfileImageUrl.isNotEmpty
-                                ? NetworkImage(widget.feed.fullProfileImageUrl)
-                                : null,
-                            child: widget.feed.fullProfileImageUrl.isEmpty
-                                ? Icon(Icons.person)
-                                : null,
+                          // 프로필 이미지를 GestureDetector로 감싸기
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => UserProfilePage(
+                                    userId: widget.feed.userId,
+                                    username: widget.feed.username,
+                                    profileImage: widget.feed.fullProfileImageUrl,
+                                  ),
+                                ),
+                              );
+                            },
+                            child: CircleAvatar(
+                              backgroundImage: widget.feed.fullProfileImageUrl.isNotEmpty
+                                  ? NetworkImage(widget.feed.fullProfileImageUrl)
+                                  : null,
+                              child: widget.feed.fullProfileImageUrl.isEmpty
+                                  ? Icon(Icons.person)
+                                  : null,
+                            ),
                           ),
                           SizedBox(width: 12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  widget.feed.username,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                                // 사용자 이름을 GestureDetector로 감싸기
+                                GestureDetector(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => UserProfilePage(
+                                          userId: widget.feed.userId,
+                                          username: widget.feed.username,
+                                          profileImage: widget.feed.fullProfileImageUrl,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Text(
+                                    widget.feed.username,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: themeProvider.textColor,
+                                    ),
                                   ),
                                 ),
                                 Text(
                                   widget.feed.photoTakenAt != null
                                       ? _formatDate(widget.feed.photoTakenAt!)
                                       : "No photo date available",
-                                  style: TextStyle(color: Colors.grey[600]),
+                                  style: TextStyle(color: themeProvider.secondaryTextColor,),
                                 ),
                               ],
                             ),
@@ -233,7 +276,8 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
                               color: Colors.grey[200],
                               height: 300,
                               child: Center(
-                                child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey),
+                                child: Icon(Icons.image_not_supported, size: 50,
+                                    color: Colors.grey),
                               ),
                             );
                           },
@@ -243,7 +287,8 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
 
                     // 액션 버튼 (좋아요, 북마크)
                     Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       child: Row(
                         children: [
                           // 좋아요 버튼
@@ -252,8 +297,9 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
                             child: Row(
                               children: [
                                 Icon(
-                                  _isLiked ? Icons.favorite : Icons.favorite_border,
-                                  color: _isLiked ? Colors.red : Colors.black,
+                                  _isLiked ? Icons.favorite : Icons
+                                      .favorite_border,
+                                  color: _isLiked ? AppColors.primary : themeProvider.iconColor,
                                   size: 24,
                                 ),
                                 SizedBox(width: 4),
@@ -271,8 +317,9 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
                             child: Row(
                               children: [
                                 Icon(
-                                  _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                  color: _isBookmarked ? AppColors.primary : Colors.black,
+                                  _isBookmarked ? Icons.bookmark : Icons
+                                      .bookmark_border,
+                                  color: _isBookmarked ? AppColors.primary : themeProvider.iconColor,
                                   size: 24,
                                 ),
                                 SizedBox(width: 4),
@@ -342,60 +389,101 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
                 ),
               ),
 
-              // 댓글 입력 부분 (하단 고정)
-              Padding(
+              // 댓글 입력 부분
+              Container(
                 padding: EdgeInsets.fromLTRB(12, 8, 12, 8 + MediaQuery.of(context).viewInsets.bottom),
                 child: Material(
                   elevation: 5.0,
                   shadowColor: Colors.grey.withOpacity(0.5),
-                  color: Colors.white,
-                  child: Row(
+                  color: themeProvider.isDarkMode ? Color(0xFF3E3E3E) : Colors.white, // 하드코딩된 white 대신 테마의 배경색 사용
+                  borderRadius: BorderRadius.circular(8), // 모서리를 둥글게 해서 더 보기 좋게 만듦
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // 현재 사용자 프로필 이미지
-                      Consumer<UserProvider>(
-                        builder: (context, userProvider, child) {
-                          return Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.0),
-                            child: CircleAvatar(
-                              radius: 16,
-                              backgroundImage: userProvider.profileImage.isNotEmpty
-                                  ? NetworkImage(userProvider.profileImage)
-                                  : null,
-                              child: userProvider.profileImage.isEmpty
-                                  ? Icon(Icons.person, size: 20)
-                                  : null,
-                              backgroundColor: Colors.grey[300],
-                            ),
-                          );
-                        },
-                      ),
-                      // 댓글 입력 필드
-                      Expanded(
-                        child: TextField(
-                          controller: _commentController,
-                          focusNode: _commentFocusNode, // 추가: FocusNode 연결
-                          decoration: InputDecoration(
-                            hintText: 'Add a comment...',
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      // 대댓글 작성 중일 때 상단에 표시
+                      if (_replyingToUsername != null)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          color: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100], // 다크모드에 맞춰 색상 조정
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  'Replying to ${_replyingToUsername}',
+                                  style: TextStyle(
+                                      color: AppColors.primary,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: Icon(Icons.close, size: 16, color: themeProvider.iconColor), // 테마 아이콘 색상 사용
+                                padding: EdgeInsets.zero,
+                                constraints: BoxConstraints(),
+                                onPressed: () {
+                                  setState(() {
+                                    _replyingToCommentId = null;
+                                    _replyingToUsername = null;
+                                  });
+                                },
+                              ),
+                            ],
                           ),
-                          minLines: 1,
-                          maxLines: 3,
                         ),
-                      ),
-                      // 게시 버튼
-                      Container(
-                        margin: EdgeInsets.only(right: 8.0),
-                        child: _isPostingComment
-                            ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                            : IconButton(
-                          icon: Icon(Icons.send, color: AppColors.primary),
-                          onPressed: _postComment,
-                        ),
+                      Row(
+                        children: [
+                          // 현재 사용자 프로필 이미지
+                          Consumer<UserProvider>(
+                            builder: (context, userProvider, child) {
+                              return Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8.0),
+                                child: CircleAvatar(
+                                  radius: 16,
+                                  backgroundImage: userProvider.profileImage.isNotEmpty
+                                      ? NetworkImage(userProvider.profileImage)
+                                      : null,
+                                  child: userProvider.profileImage.isEmpty
+                                      ? Icon(Icons.person, size: 20)
+                                      : null,
+                                  backgroundColor: themeProvider.isDarkMode ? Colors.grey[700] : Colors.grey[300], // 다크모드에 맞게 조정
+                                ),
+                              );
+                            },
+                          ),
+                          // 댓글 입력 필드
+                          Expanded(
+                            child: TextField(
+                              controller: _commentController,
+                              focusNode: _commentFocusNode,
+                              decoration: InputDecoration(
+                                hintText: _replyingToUsername != null
+                                    ? 'Reply to ${_replyingToUsername}'
+                                    : 'Add a comment...',
+                                hintStyle: TextStyle(color: themeProvider.secondaryTextColor), // 힌트 텍스트 색상 테마에 맞게 조정
+                                border: InputBorder.none,
+                                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              ),
+                              style: TextStyle(color: themeProvider.textColor), // 입력 텍스트 색상 테마에 맞게 조정
+                              minLines: 1,
+                              maxLines: 3,
+                            ),
+                          ),
+                          // 게시 버튼
+                          Container(
+                            margin: EdgeInsets.only(right: 8.0),
+                            child: _isPostingComment
+                                ? SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                                : IconButton(
+                              icon: Icon(Icons.send, color: AppColors.primary),
+                              onPressed: _postComment,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -430,7 +518,7 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
       print("[ERROR] 좋아요 토글 중 오류 발생: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("좋아요 처리 중 오류가 발생했습니다.")),
+          SnackBar(content: Text("An error occurred while processing the like.")),
         );
       }
     }
@@ -458,7 +546,7 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
       print("[ERROR] 북마크 토글 중 오류 발생: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("북마크 처리 중 오류가 발생했습니다.")),
+          SnackBar(content: Text("An error occurred while processing the bookmark.")),
         );
       }
     }
@@ -475,7 +563,12 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
     });
 
     try {
-      final response = await FeedApi.createComment(widget.feed.id, comment);
+      // API 호출 시 부모 댓글 ID 전달 (있는 경우)
+      final response = await FeedApi.createComment(
+          widget.feed.id,
+          comment,
+          parentId: _replyingToCommentId
+      );
 
       if (response.containsKey('error')) {
         throw Exception(response['error']);
@@ -484,14 +577,19 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
       // 댓글 추가 성공
       _commentController.clear();
 
+      // 대댓글 모드 초기화
+      setState(() {
+        _replyingToCommentId = null;
+        _replyingToUsername = null;
+      });
+
       // 댓글 목록 새로고침
       await _loadComments();
-
     } catch (e) {
       print("[ERROR] 댓글 작성 중 오류 발생: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("댓글을 작성하는 중 오류가 발생했습니다.")),
+          SnackBar(content: Text("An error occurred while posting the comment.")),
         );
       }
     } finally {
@@ -503,6 +601,79 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
     }
   }
 
+  // _buildRichTextComment 메서드 수정
+  Widget _buildRichTextComment(String content, double fontSize) {
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    RegExp mentionRegex = RegExp(r'@([a-zA-Z0-9._]+)');
+    List<TextSpan> textSpans = [];
+    int currentPos = 0;
+
+    for (Match match in mentionRegex.allMatches(content)) {
+      if (match.start > currentPos) {
+        textSpans.add(
+          TextSpan(
+            text: content.substring(currentPos, match.start),
+            style: TextStyle(fontSize: fontSize, color: themeProvider.textColor), // 테마 색상 사용
+          ),
+        );
+      }
+
+      textSpans.add(
+        TextSpan(
+          text: match.group(0),
+          style: TextStyle(
+            fontSize: fontSize,
+            color: AppColors.primary,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      );
+
+      currentPos = match.end;
+    }
+
+    if (currentPos < content.length) {
+      textSpans.add(
+        TextSpan(
+          text: content.substring(currentPos),
+          style: TextStyle(fontSize: fontSize, color: themeProvider.textColor), // 테마 색상 사용
+        ),
+      );
+    }
+
+    return RichText(
+      text: TextSpan(children: textSpans),
+    );
+  }
+
+  // 대댓글 입력 모드 설정 함수 추가
+  void _showReplyInput(String commentId, String username) {
+    setState(() {
+      _replyingToCommentId = commentId;
+      _replyingToUsername = username;
+      _commentController.text = '@$username '; // 입력 필드에 @username 추가
+    });
+
+    // 입력 필드에 포커스
+    _commentFocusNode.requestFocus();
+
+    // 커서를 @username 뒤에 위치시키기
+    _commentController.selection = TextSelection.fromPosition(
+      TextPosition(offset: _commentController.text.length),
+    );
+
+    // 입력 필드로 스크롤
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController != null && _scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+  }
+
   Widget _buildCommentItem(FeedComment comment) {
     // 현재 사용자가 댓글 작성자인지 확인
     final bool isCommentOwner = _currentUserId == comment.userId;
@@ -511,191 +682,366 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
     // 삭제 권한 여부 (자신의 댓글이거나 자신의 피드인 경우)
     final bool canDelete = isCommentOwner || isFeedOwner;
 
-    // 삭제 권한이 없으면 일반 댓글 아이템 반환
-    if (!canDelete) {
-      return Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundImage: comment.fullProfileImageUrl.isNotEmpty
-                  ? NetworkImage(comment.fullProfileImageUrl)
-                  : null,
-              backgroundColor: Colors.grey[300],
-              child: comment.fullProfileImageUrl.isEmpty
-                  ? Icon(Icons.person, size: 18)
-                  : null,
-            ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        comment.username,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
+    // 댓글 위젯
+    Widget commentWidget = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 프로필 이미지에 GestureDetector 추가
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => UserProfilePage(
+                        userId: comment.userId,
+                        username: comment.username,
+                        profileImage: comment.fullProfileImageUrl,
                       ),
-                      SizedBox(width: 8),
-                      Text(
-                        _timeAgo(comment.createdAt),
-                        style: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: 4),
-                  Text(comment.content),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _toggleCommentLike(comment),
-                        child: Icon(
-                          comment.isLiked ? Icons.favorite : Icons.favorite_border,
-                          size: 16,
-                          color: comment.isLiked ? Colors.red : Colors.grey,
-                        ),
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        '${comment.likesCount}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                    ),
+                  );
+                },
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundImage: comment.fullProfileImageUrl.isNotEmpty
+                      ? NetworkImage(comment.fullProfileImageUrl)
+                      : null,
+                  backgroundColor: Colors.grey[300],
+                  child: comment.fullProfileImageUrl.isEmpty
+                      ? Icon(Icons.person, size: 18)
+                      : null,
+                ),
               ),
-            ),
-          ],
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        // 사용자 이름에 GestureDetector 추가
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => UserProfilePage(
+                                  userId: comment.userId,
+                                  username: comment.username,
+                                  profileImage: comment.fullProfileImageUrl,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            comment.username,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          _timeAgo(comment.createdAt),
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 4),
+                    _buildRichTextComment(comment.content, 14),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => _toggleCommentLike(comment),
+                          child: Icon(
+                            comment.isLiked ? Icons.favorite : Icons.favorite_border,
+                            size: 16,
+                            color: comment.isLiked ? AppColors.primary : Colors.grey,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          '${comment.likesCount}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        // 대댓글 버튼 추가
+                        GestureDetector(
+                          onTap: () {
+                            _showReplyInput(comment.id, comment.username);
+                          },
+                          child: Text(
+                            'Reply',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              // 삭제 버튼
+              // if (canDelete)
+              //   IconButton(
+              //     icon: Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+              //     onPressed: () => _deleteComment(comment.id),
+              //     padding: EdgeInsets.all(4),
+              //     constraints: BoxConstraints(),
+              //   ),
+            ],
+          ),
         ),
+
+        // 대댓글 목록 표시
+        if (comment.replies.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(left: 44, top: 0, bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: comment.replies.map((reply) => _buildReplyItem(reply))
+                  .toList(),
+            ),
+          ),
+      ],
+    );
+
+    // 삭제 기능이 있는 경우 Dismissible 위젯으로 감싸기
+    if (canDelete) {
+      return Dismissible(
+        key: ObjectKey(comment.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Icon(Icons.delete, color: Colors.white),
+        ),
+        confirmDismiss: (direction) async {
+          // 대댓글이 있는 경우 별도 처리
+          if (comment.replies.isNotEmpty) {
+            return await showDialog<bool>(
+              context: context,
+              builder: (context) =>
+                  AlertDialog(
+                    title: Text('Delete comment'),
+                    content: Text(
+                        'This comment has replies. Deleting it will also delete all replies. Do you want to continue?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text('Delete', style: TextStyle(color: Colors.red)),
+                      ),
+                    ],
+                  ),
+            ) ?? false;
+          }
+
+          // 일반 댓글 삭제 확인
+          return await showDialog<bool>(
+            context: context,
+            builder: (context) =>
+                AlertDialog(
+                  title: Text('Delete comment'),
+                  content: Text('Do you want to delete this comment?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      child: Text('Cancel'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      child: Text('Delete', style: TextStyle(color: Colors.red)),
+                    ),
+                  ],
+                ),
+          ) ?? false;
+        },
+        onDismissed: (direction) {
+          _deleteComment(comment.id);
+        },
+        child: commentWidget,
       );
     }
 
-    // 삭제 권한이 있는 경우 Dismissible 위젯으로 감싸기
-    return Dismissible(
-      key: ObjectKey(comment.id),
-      direction: DismissDirection.endToStart,
-      background: Container(
-        color: Colors.red,
-        alignment: Alignment.centerRight,
-        padding: EdgeInsets.symmetric(horizontal: 20),
-        child: Icon(
-          Icons.delete,
-          color: Colors.white,
-        ),
-      ),
-      confirmDismiss: (direction) async {
-        // 댓글 삭제 전 포커스 제거
-        _commentFocusNode.unfocus();
+    return commentWidget;
+  }
 
-        // 삭제 확인 다이얼로그
-        return await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Delete Comment'),
-            content: Text('Are you sure you want to delete this comment?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context, false),
-                child: Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: Text('Delete', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ) ?? false;
-      },
-      onDismissed: (direction) {
+  Widget _buildReplyItem(FeedComment reply) {
+    final bool isReplyOwner = _currentUserId == reply.userId;
+    final bool isFeedOwner = _currentUserId == widget.feed.userId;
+    final bool canDelete = isReplyOwner || isFeedOwner;
 
-        setState(() {
-          _comments.removeWhere((c) => c.id == comment.id);
-        });
-        // 댓글 삭제 API 호출
-        _deleteComment(comment.id);
-      },
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CircleAvatar(
-              radius: 16,
-              backgroundImage: comment.fullProfileImageUrl.isNotEmpty
-                  ? NetworkImage(comment.fullProfileImageUrl)
+    Widget replyWidget = Padding(
+      padding: EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 프로필 이미지에 GestureDetector 추가
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => UserProfilePage(
+                    userId: reply.userId,
+                    username: reply.username,
+                    profileImage: reply.fullProfileImageUrl,
+                  ),
+                ),
+              );
+            },
+            child: CircleAvatar(
+              radius: 12,
+              backgroundImage: reply.fullProfileImageUrl.isNotEmpty
+                  ? NetworkImage(reply.fullProfileImageUrl)
                   : null,
               backgroundColor: Colors.grey[300],
-              child: comment.fullProfileImageUrl.isEmpty
-                  ? Icon(Icons.person, size: 18)
+              child: reply.fullProfileImageUrl.isEmpty
+                  ? Icon(Icons.person, size: 12)
                   : null,
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        comment.username,
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    // 사용자 이름에 GestureDetector 추가
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => UserProfilePage(
+                              userId: reply.userId,
+                              username: reply.username,
+                              profileImage: reply.fullProfileImageUrl,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        reply.username,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Text(
-                        _timeAgo(comment.createdAt),
-                        style: TextStyle(
-                          color: Colors.grey,
                           fontSize: 12,
                         ),
                       ),
-                    ],
-                  ),
-                  SizedBox(height: 4),
-                  Text(comment.content),
-                  SizedBox(height: 4),
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => _toggleCommentLike(comment),
-                        child: Icon(
-                          comment.isLiked ? Icons.favorite : Icons.favorite_border,
-                          size: 16,
-                          color: comment.isLiked ? Colors.red : Colors.grey,
-                        ),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      _timeAgo(reply.createdAt),
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 10,
                       ),
-                      SizedBox(width: 4),
-                      Text(
-                        '${comment.likesCount}',
+                    ),
+                  ],
+                ),
+                _buildRichTextComment(reply.content, 13),
+                SizedBox(height: 2),
+                Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () => _toggleCommentLike(reply),
+                      child: Icon(
+                        reply.isLiked ? Icons.favorite : Icons.favorite_border,
+                        size: 14,
+                        color: reply.isLiked ? AppColors.primary : Colors.grey,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      '${reply.likesCount}',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    // 여기에 대댓글에 대한 Reply 버튼 추가
+                    SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: () {
+                        _showReplyInput(reply.parentId!, reply.username);
+                      },
+                      child: Text(
+                        'Reply',
                         style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
+
+    // 삭제 권한이 있는 경우 Dismissible로 감싸기
+    if (canDelete) {
+      return Dismissible(
+        key: ObjectKey(reply.id),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          color: Colors.red,
+          alignment: Alignment.centerRight,
+          padding: EdgeInsets.symmetric(horizontal: 20),
+          child: Icon(Icons.delete, color: Colors.white),
+        ),
+        confirmDismiss: (direction) async {
+          return await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: Text('Delete reply'),
+              content: Text('Do you want to delete this reply?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context, false),
+                  child: Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.pop(context, true),
+                  child: Text('Delete', style: TextStyle(color: Colors.red)),
+                ),
+              ],
+            ),
+          ) ?? false;
+        },
+        onDismissed: (direction) {
+          _deleteComment(reply.id);
+        },
+        child: replyWidget,
+      );
+    }
+
+    return replyWidget;
   }
 
   // 댓글 삭제 메서드 수정
@@ -713,9 +1059,48 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
         return;
       }
 
-      // 성공적으로 삭제됨 - 로컬 상태에서 댓글 제거 (API 호출 대신)
+      // 성공적으로 삭제됨 - 로컬 상태에서 댓글 또는 답글 제거
       setState(() {
-        _comments.removeWhere((comment) => comment.id == commentId);
+        // 메인 댓글인지 확인
+        bool foundMainComment = false;
+        for (int i = 0; i < _comments.length; i++) {
+          if (_comments[i].id == commentId) {
+            // 메인 댓글 삭제
+            _comments.removeAt(i);
+            foundMainComment = true;
+            break;
+          }
+        }
+
+        // 메인 댓글이 아니라면 답글 중에서 찾기
+        if (!foundMainComment) {
+          for (int i = 0; i < _comments.length; i++) {
+            List<FeedComment> replies = _comments[i].replies;
+            for (int j = 0; j < replies.length; j++) {
+              if (replies[j].id == commentId) {
+                // 답글 찾음 - 해당 답글만 삭제
+                List<FeedComment> updatedReplies = List.from(replies);
+                updatedReplies.removeAt(j);
+
+                // 업데이트된 답글 목록으로 부모 댓글 갱신
+                _comments[i] = FeedComment(
+                  id: _comments[i].id,
+                  feedId: _comments[i].feedId,
+                  userId: _comments[i].userId,
+                  username: _comments[i].username,
+                  profileImage: _comments[i].profileImage,
+                  content: _comments[i].content,
+                  createdAt: _comments[i].createdAt,
+                  likesCount: _comments[i].likesCount,
+                  isLiked: _comments[i].isLiked,
+                  parentId: _comments[i].parentId,
+                  replies: updatedReplies, // 업데이트된 답글 목록
+                );
+                break;
+              }
+            }
+          }
+        }
       });
 
       if (mounted) {
@@ -752,11 +1137,15 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
 
       // 로컬 상태 업데이트 (새로고침 대신)
       setState(() {
-        // 댓글 목록에서 해당 댓글 찾기
-        final index = _comments.indexWhere((c) => c.id == comment.id);
-        if (index != -1) {
-          // 댓글 객체 업데이트
-          _comments[index] = FeedComment(
+        // 메인 댓글인지 답글인지 확인
+        bool isMainComment = comment.parentId == null;
+
+        if (isMainComment) {
+          // 메인 댓글인 경우
+          final index = _comments.indexWhere((c) => c.id == comment.id);
+          if (index != -1) {
+            // 댓글 객체 업데이트
+            _comments[index] = FeedComment(
               id: comment.id,
               feedId: comment.feedId,
               userId: comment.userId,
@@ -764,16 +1153,60 @@ class _FeedDetailSheetState extends State<FeedDetailSheet> {
               profileImage: comment.profileImage,
               content: comment.content,
               createdAt: comment.createdAt,
-              likesCount: response['likes_count'] ?? (comment.isLiked ? comment.likesCount - 1 : comment.likesCount + 1),
-              isLiked: !comment.isLiked
-          );
+              likesCount: response['likes_count'] ??
+                  (comment.isLiked ? comment.likesCount - 1 : comment.likesCount + 1),
+              isLiked: !comment.isLiked,
+              parentId: comment.parentId,
+              replies: comment.replies, // 대댓글 목록 유지
+            );
+          }
+        } else {
+          // 답글인 경우 - 부모 댓글을 찾아서 그 안의 replies 배열을 수정
+          for (int i = 0; i < _comments.length; i++) {
+            int replyIndex = _comments[i].replies.indexWhere((r) => r.id == comment.id);
+            if (replyIndex != -1) {
+              // 해당 답글의 부모 댓글을 찾음
+              List<FeedComment> updatedReplies = List.from(_comments[i].replies);
+              // 답글 객체 업데이트
+              updatedReplies[replyIndex] = FeedComment(
+                id: comment.id,
+                feedId: comment.feedId,
+                userId: comment.userId,
+                username: comment.username,
+                profileImage: comment.profileImage,
+                content: comment.content,
+                createdAt: comment.createdAt,
+                likesCount: response['likes_count'] ??
+                    (comment.isLiked ? comment.likesCount - 1 : comment.likesCount + 1),
+                isLiked: !comment.isLiked,
+                parentId: comment.parentId,
+                replies: [], // 대댓글의 대댓글은 없음
+              );
+
+              // 부모 댓글 객체 업데이트
+              _comments[i] = FeedComment(
+                id: _comments[i].id,
+                feedId: _comments[i].feedId,
+                userId: _comments[i].userId,
+                username: _comments[i].username,
+                profileImage: _comments[i].profileImage,
+                content: _comments[i].content,
+                createdAt: _comments[i].createdAt,
+                likesCount: _comments[i].likesCount,
+                isLiked: _comments[i].isLiked,
+                parentId: _comments[i].parentId,
+                replies: updatedReplies, // 업데이트된 답글 목록
+              );
+              break;
+            }
+          }
         }
       });
     } catch (e) {
       print("[ERROR] 댓글 좋아요 토글 중 오류 발생: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("댓글 좋아요 처리 중 오류가 발생했습니다.")),
+          SnackBar(content: Text("An error occurred while processing the comment like.")),
         );
       }
     }

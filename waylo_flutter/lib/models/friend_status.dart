@@ -1,3 +1,4 @@
+// lib/models/friend_status.dart
 enum FriendStatus {
   notFriend,      // 친구가 아님
   requestSent,    // 친구 요청 보냄

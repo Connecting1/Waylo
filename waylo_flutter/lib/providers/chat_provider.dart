@@ -1,3 +1,4 @@
+// lib/providers/chat_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/services/api/chat_api.dart';
 import 'dart:async';

@@ -1,13 +1,16 @@
+// lib/screen/main/search_screen.dart
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
 import 'package:waylo_flutter/services/api/friend_api.dart';
 import 'package:waylo_flutter/models/search_user.dart';
 import 'package:waylo_flutter/models/friend_request.dart';
 import 'package:waylo_flutter/models/friend_status.dart';
-import 'package:waylo_flutter/screens/main/user_profile_page.dart';
+import 'package:waylo_flutter/screens/profile/user_profile_page.dart';
 import 'package:waylo_flutter/services/api/chat_api.dart';
 import 'package:waylo_flutter/screens/chat/chat_room_screen.dart';
+import '../../providers/theme_provider.dart';
 import '../../services/api/api_service.dart';
 import '../../styles/app_styles.dart';
 
@@ -256,7 +259,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("친구 요청을 보냈습니다")),
+          SnackBar(content: Text("Friend request has been sent")),
         );
 
         // 친구 상태 데이터 새로고침
@@ -348,10 +351,12 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       appBar: AppBar(
         toolbarHeight: 40,
         automaticallyImplyLeading: false,
-        backgroundColor: AppColors.primary,
+        backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+            ? AppColors.darkSurface
+            : AppColors.primary,
         title: Text(
           "Search & Friends",
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
         ),
         centerTitle: true,
         actions: [

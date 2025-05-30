@@ -1,3 +1,4 @@
+// lib/screen/auth/sign_up_password.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -84,6 +85,7 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
             TextField(
               controller: _passwordController,
               onChanged: _validatePassword,
+              style: const TextStyle(color: Colors.black),
               obscureText: _obscurePassword,
               decoration: InputDecoration(
                 filled: true,
@@ -125,18 +127,12 @@ class _SignUpPasswordPageState extends State<SignUpPasswordPage> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isPasswordValid ? () => _goToBirthDatePage(context) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isPasswordValid ? Colors.white : Colors.grey, // 유효하지 않으면 회색
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // 버튼 모서리 둥글게
-                    ),
-                  ),
+                  style: ButtonStyles.formButtonStyle(context, isEnabled: _isPasswordValid),
                   child: const Text(
                     "Next",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey, // 텍스트 색상
                     ),
                   ),
                 ),

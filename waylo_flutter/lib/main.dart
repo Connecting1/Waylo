@@ -9,6 +9,8 @@ import 'providers/map_provider.dart';
 import 'providers/feed_map_provider.dart';
 import 'providers/widget_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/theme_provider.dart';
+import 'providers/location_settings_provider.dart';
 import 'screens/auth/sign_up_start.dart';
 import 'screens/main/main_tab.dart';
 import 'services/data_loading_manager.dart';
@@ -47,21 +49,18 @@ class WayloApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => MapProvider()),
         ChangeNotifierProvider(create: (_) => FeedMapProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => LocationSettingsProvider()),
       ],
-      child: MaterialApp(
-        theme: ThemeData(
-          primarySwatch: AppColors.primarySwatch,
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: AppColors.primarySwatch,
-            brightness: Brightness.light,
-          ),
-          scaffoldBackgroundColor: Colors.white,
-          appBarTheme: AppBarTheme(backgroundColor: Colors.white),
-          useMaterial3: true,
-        ),
-        home: isLoggedIn
-            ? AppInitializer(child: MainTabPage())
-            : SignUpStartPage(),
+      child: Consumer<ThemeProvider>(
+          builder: (context, themeProvider, child) {
+            return MaterialApp(
+              theme: themeProvider.currentTheme, // ThemeProvider의 현재 테마 사용
+              home: isLoggedIn
+                  ? AppInitializer(child: MainTabPage())
+                  : SignUpStartPage(),
+            );
+          }
       ),
     );
   }
@@ -99,15 +98,21 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
+    // ThemeProvider 가져오기
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return _isLoading
         ? Scaffold(
+      // 다크 모드에 따른 배경색 적용
+      backgroundColor: themeProvider.backgroundColor,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text("로딩 중...", style: TextStyle(fontSize: 16)),
+            // 다크 모드에 따른 텍스트 색상 적용
+            Text("로딩 중...", style: TextStyle(fontSize: 16, color: themeProvider.textColor)),
           ],
         ),
       ),

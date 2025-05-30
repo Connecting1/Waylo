@@ -1,8 +1,10 @@
+// lib/services/data_loading_manager.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/providers/canvas_provider.dart';
 import 'package:waylo_flutter/providers/user_provider.dart';
 import 'package:waylo_flutter/providers/widget_provider.dart';
+import '../providers/location_settings_provider.dart';
 
 class DataLoadingManager {
   static bool _hasInitialized = false;
@@ -17,6 +19,7 @@ class DataLoadingManager {
     final canvasProvider = Provider.of<CanvasProvider>(context, listen: false);
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
+    final locationSettingsProvider = Provider.of<LocationSettingsProvider>(context, listen: false);
 
     // 데이터 로드 시작
     List<Future> loadingFutures = [];
@@ -34,6 +37,8 @@ class DataLoadingManager {
 
       }));
     }
+
+    loadingFutures.add(locationSettingsProvider.init());
 
     // 모든 데이터 로드 대기
     await Future.wait(loadingFutures);

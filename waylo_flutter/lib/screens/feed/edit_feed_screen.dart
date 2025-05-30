@@ -1,10 +1,14 @@
+// lib/screen/feed/edit_feed_screen.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:waylo_flutter/models/feed.dart';
 import 'package:waylo_flutter/services/api/feed_api.dart';
 import 'package:waylo_flutter/styles/app_styles.dart';
 import 'package:waylo_flutter/screens/map/map_location_picker.dart';
+
+import '../../providers/theme_provider.dart';
 
 class EditFeedScreen extends StatefulWidget {
   final Feed feed;
@@ -437,7 +441,9 @@ class _EditFeedScreenState extends State<EditFeedScreen> {
           'Edit Feed',
           style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
-        backgroundColor: AppColors.primary,
+        backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+            ? AppColors.darkSurface
+            : AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(

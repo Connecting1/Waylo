@@ -1,9 +1,12 @@
+// lib/screen/main/my_page_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:waylo_flutter/providers/user_provider.dart';
 import 'package:waylo_flutter/styles/app_styles.dart';
-import 'package:waylo_flutter/widgets/my_map_content.dart';
-import 'package:waylo_flutter/widgets/album_content.dart';
+import 'package:waylo_flutter/screens/profile/my_map_content.dart';
+import 'package:waylo_flutter/screens/profile/my_album_content.dart';
+
+import '../../providers/theme_provider.dart';
 
 class MyPageScreenPage extends StatefulWidget {
   @override
@@ -53,9 +56,6 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    // 사용자 이름 가져오기
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
-    final username = userProvider.username;
 
     return WillPopScope(
       onWillPop: () async {
@@ -66,10 +66,16 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
         appBar: AppBar(
           automaticallyImplyLeading: false, // 뒤로가기 버튼 제거
           toolbarHeight: 30,
-          backgroundColor: AppColors.primary,
-          title: Text(
-            "${username}",
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+              ? AppColors.darkSurface
+              : AppColors.primary,
+          title: Consumer<UserProvider>(
+            builder: (context, userProvider, child) {
+              return Text(
+                "${userProvider.username}",
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+              );
+            },
           ),
           actions: [
             // + 버튼 (항상 표시, 탭에 따라 동작 다름)

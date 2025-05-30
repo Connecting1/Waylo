@@ -1,3 +1,4 @@
+// lib/services/api/feed_api.dart
 import 'dart:io';
 import 'api_service.dart';
 
@@ -117,6 +118,14 @@ class FeedApi {
     );
   }
 
+  // 친구들 피드 가져오기
+  static Future<dynamic> fetchFriendsFeeds({int page = 1, int limit = 10}) async {
+    return await ApiService.sendRequest(
+      endpoint: "/api/feeds/friends/?page=$page&limit=$limit",
+      method: "GET",
+    );
+  }
+
   // 주변 피드 가져오기
   static Future<dynamic> fetchNearbyFeeds({
     required double latitude,
@@ -188,11 +197,22 @@ class FeedApi {
   }
 
   // 댓글 작성하기
-  static Future<Map<String, dynamic>> createComment(String feedId, String content) async {
+  static Future<Map<String, dynamic>> createComment(
+      String feedId,
+      String content,
+      {String? parentId} // 추가: 부모 댓글 ID (대댓글 작성 시)
+      ) async {
+    Map<String, dynamic> body = {"content": content};
+
+    // 부모 댓글 ID가 있는 경우 (대댓글)
+    if (parentId != null) {
+      body["parent_id"] = parentId;
+    }
+
     return await ApiService.sendRequest(
       endpoint: "/api/feeds/$feedId/comment/",
       method: "POST",
-      body: {"content": content},
+      body: body,
     );
   }
 

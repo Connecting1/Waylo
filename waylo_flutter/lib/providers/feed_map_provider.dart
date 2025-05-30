@@ -1,4 +1,4 @@
-// providers/feed_map_provider.dart
+// lib/providers/feed_map_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/feed.dart';
 import 'package:waylo_flutter/services/api/feed_api.dart';

@@ -1,3 +1,4 @@
+// lib/providers/map_provider.dart
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:waylo_flutter/models/feed.dart';

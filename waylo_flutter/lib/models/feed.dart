@@ -1,3 +1,4 @@
+// lib/models/feed.dart
 import 'package:waylo_flutter/services/api/api_service.dart';
 
 class Feed {
@@ -8,6 +9,8 @@ class Feed {
   final double latitude;
   final double longitude;
   final String imageUrl;
+  // final String? mediumResUrl;
+  // final String? lowResUrl;
   final String thumbnailUrl;
   final String description;
   final String visibility;
@@ -29,6 +32,8 @@ class Feed {
     required this.latitude,
     required this.longitude,
     required this.imageUrl,
+    // this.mediumResUrl,
+    // this.lowResUrl,
     required this.thumbnailUrl,
     required this.description,
     required this.visibility,
@@ -63,6 +68,8 @@ class Feed {
       latitude: double.tryParse(json['latitude'].toString()) ?? 0.0,
       longitude: double.tryParse(json['longitude'].toString()) ?? 0.0,
       imageUrl: json['image_url'] ?? '',
+      // mediumResUrl: json['medium_res_url'],
+      // lowResUrl: json['low_res_url'],
       thumbnailUrl: json['thumbnail_url'] ?? '',
       description: json['description'] ?? '',
       visibility: json['visibility'] ?? 'public',
@@ -82,6 +89,23 @@ class Feed {
     );
   }
 
+  // String get fullMediumResUrl {
+  //   if (mediumResUrl == null || mediumResUrl!.isEmpty) return fullImageUrl;
+  //   if (mediumResUrl!.startsWith('http')) return mediumResUrl!;
+  //   if (mediumResUrl!.startsWith('/')) {
+  //     return "${ApiService.baseUrl}$mediumResUrl";
+  //   }
+  //   return mediumResUrl!;
+  // }
+  //
+  // String get fullLowResUrl {
+  //   if (lowResUrl == null || lowResUrl!.isEmpty) return fullThumbnailUrl;
+  //   if (lowResUrl!.startsWith('http')) return lowResUrl!;
+  //   if (lowResUrl!.startsWith('/')) {
+  //     return "${ApiService.baseUrl}$lowResUrl";
+  //   }
+  //   return lowResUrl!;
+  // }
 
   String get fullThumbnailUrl {
     if (thumbnailUrl.isEmpty) return '';

@@ -1,3 +1,4 @@
+// lib/screen/auth/sign_up_phone_verification.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +39,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       _isCodeSent = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("인증 코드가 전송되었습니다.")),
+      const SnackBar(content: Text("Verification code has been sent.")),
     );
   }
 
@@ -53,14 +54,14 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       _isVerified = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("휴대폰 인증 완료!")),
+      const SnackBar(content: Text("Phone verification completed!")),
     );
   }
 
   Future<void> _handleFinalSignUp() async {
     if (!_isVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("휴대폰 인증을 완료해야 합니다.")),
+        const SnackBar(content: Text("You need to complete phone verification.")),
       );
       return;
     }
@@ -87,7 +88,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("[ERROR] 회원가입 실패: ${response["error"]}")),
+          SnackBar(content: Text("[ERROR] Sign up failed: ${response["error"]}")),
         );
       } else {
         // 회원가입 성공 - 이제 자동 로그인 시도
@@ -122,7 +123,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
             });
 
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("회원가입 및 로그인 성공!")),
+              const SnackBar(content: Text("Sign up and login successful!")),
             );
 
             Navigator.pushReplacement(
@@ -137,7 +138,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
 
             // 로그인 실패 시 사용자에게 알리고 로그인 화면으로 이동
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("회원가입은 성공했지만 자동 로그인에 실패했습니다. 로그인해주세요.")),
+              const SnackBar(content: Text("Sign up was successful but auto-login failed. Please log in.")),
             );
 
             Navigator.pushReplacement(
@@ -154,7 +155,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
 
           // 로그인 오류 시 사용자에게 알리고 로그인 화면으로 이동
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("회원가입은 성공했지만 로그인에 실패했습니다. 로그인해주세요.")),
+            const SnackBar(content: Text("Sign up was successful but login failed. Please log in.")),
           );
 
           Navigator.pushReplacement(
@@ -171,7 +172,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       print("[ERROR] 회원가입 요청 중 예외 발생: $e");
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("[ERROR] 네트워크 오류: 회원가입할 수 없습니다.")),
+        SnackBar(content: Text("[ERROR] Network error: Unable to sign up.")),
       );
     }
   }
@@ -201,6 +202,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 onChanged: _onPhoneChanged,
+                style: const TextStyle(color: Colors.black),
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
@@ -214,11 +216,14 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                   height: 50,
                   child: ElevatedButton(
                     onPressed: _isPhoneValid && !_isCodeSent ? _sendVerificationCode : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isPhoneValid && !_isCodeSent ? Colors.white : Colors.grey,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    style: ButtonStyles.formButtonStyle(context, isEnabled: _isPhoneValid && !_isCodeSent), // 👈 이렇게 변경
+                    child: const Text(
+                      "Next",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    child: const Text("Next", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
                   ),
                 ),
               ),
@@ -232,6 +237,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   maxLength: 6,
                   onChanged: _onCodeChanged,
+                  style: const TextStyle(color: Colors.black),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
@@ -248,13 +254,16 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                     height: 50,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleFinalSignUp,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isLoading ? Colors.grey : Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                      ),
+                      style: ButtonStyles.formButtonStyle(context, isEnabled: !_isLoading), // 👈 이렇게 변경
                       child: _isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text("Next", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.grey)),
+                          ? const CircularProgressIndicator(color: Colors.grey) // 로딩 표시 색상도 맞춤
+                          : const Text(
+                        "Next",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ),
                 ),

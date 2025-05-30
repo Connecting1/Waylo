@@ -1,3 +1,4 @@
+// lib/providers/album_provider.dart
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/services/api/album_api.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';

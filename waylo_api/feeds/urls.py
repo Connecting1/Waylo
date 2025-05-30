@@ -16,7 +16,8 @@ from .views import (
     unlike_comment,
     nearby_feeds,
     user_feeds,
-    bookmarked_feeds
+    bookmarked_feeds,
+    friends_feeds  # 새로 추가된 import
 )
 
 urlpatterns = [
@@ -44,4 +45,5 @@ urlpatterns = [
     path('nearby/', nearby_feeds, name='nearby-feeds'),
     path('user/<uuid:user_id>/', user_feeds, name='user-feeds'),
     path('bookmarked/', bookmarked_feeds, name='bookmarked-feeds'),
+    path('friends/', friends_feeds, name='friends-feeds'),  # 새로 추가된 URL
 ]

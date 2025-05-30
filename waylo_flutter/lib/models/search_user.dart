@@ -1,3 +1,4 @@
+// lib/models/search_user.dart
 import 'package:waylo_flutter/services/api/api_service.dart';
 
 class SearchUser {

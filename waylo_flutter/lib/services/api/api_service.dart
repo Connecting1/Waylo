@@ -1,3 +1,4 @@
+// lib/services/api/api_service.dart
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -6,7 +7,7 @@ import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.0.7:8000";
+  static const String baseUrl = "http://192.168.0.6:8000";
 
   // SharedPreferences에서 user_id 가져오기 (모든 API에서 사용)
   static Future<String?> getUserId() async {

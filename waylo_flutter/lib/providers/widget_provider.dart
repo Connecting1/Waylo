@@ -1,3 +1,4 @@
+// lib/providers/widget_provider.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/album_widget.dart';

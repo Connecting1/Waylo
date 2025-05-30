@@ -1,3 +1,4 @@
+// lib/screen/auth/sign_up_user_name.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/sign_up_provider.dart';
@@ -81,6 +82,7 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
             TextField(
               controller: _nickNameController,
               onChanged: _validateNickName, // 이메일 입력값이 변경될 때 유효성 검사 실행
+              style: const TextStyle(color: Colors.black),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white, // 입력 필드 배경색
@@ -113,19 +115,12 @@ class _SignUpUserNamePageState extends State<SignUpUserNamePage> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isNickNameValid ? () => _goToPasswordPage(context) : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _isNickNameValid ? Colors.white : Colors.grey, // 유효하지 않으면 회색
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30), // 버튼 모서리 둥글게
-                    ),
-                  ),
-                  child: Text(
+                  style: ButtonStyles.formButtonStyle(context, isEnabled: _isNickNameValid), // 👈 이렇게 변경
+                  child: const Text(
                     "Next",
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
-                      // color: _isEmailValid ? Colors.grey : Colors.white, // 텍스트 색상
-                      color: Colors.grey,
                     ),
                   ),
                 ),
