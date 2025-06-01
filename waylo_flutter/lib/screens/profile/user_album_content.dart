@@ -1,12 +1,10 @@
-// lib/screens/profile/user_album_content.dart
-
 import 'package:flutter/material.dart';
 import 'package:waylo_flutter/models/album_widget.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
 import 'package:waylo_flutter/services/api/widget_api.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/profile_image_widget.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/checklist_widget.dart';
-import 'package:waylo_flutter/widgets/custom_widgets/textbox_widget.dart'; // TextBoxWidget import 추가
+import 'package:waylo_flutter/widgets/custom_widgets/textbox_widget.dart';
 import '../../../styles/app_styles.dart';
 
 class UserAlbumContentWidget extends StatefulWidget {
@@ -24,138 +22,175 @@ class UserAlbumContentWidget extends StatefulWidget {
 }
 
 class _UserAlbumContentWidgetState extends State<UserAlbumContentWidget> with AutomaticKeepAliveClientMixin {
+  // 텍스트 상수들
+  static const String _retryButtonText = "Retry";
+  static const String _noWidgetsMessageSuffix = "'s album has no widgets.";
+
+  // 에러 메시지 상수들
+  static const String _albumLoadErrorMessage = "An error occurred while loading album data.";
+  static const String _albumInfoFetchErrorMessage = "Failed to fetch album information.";
+  static const String _widgetsKeyMissingError = "widgets key is missing";
+
+  // 폰트 크기 상수들
+  static const double _errorMessageFontSize = 16;
+  static const double _noWidgetsMessageFontSize = 16;
+
+  // 크기 상수들
+  static const double _errorIconSize = 48;
+  static const double _noWidgetsIconSize = 64;
+  static const double _errorIconSpacing = 16;
+  static const double _errorButtonSpacing = 24;
+  static const double _noWidgetsIconSpacing = 16;
+
+  // 위젯 타입 상수들
+  static const String _profileImageType = "profile_image";
+  static const String _checklistType = "checklist";
+  static const String _textBoxType = "text_box";
+
+  // API 엔드포인트 상수들
+  static const String _albumApiPrefix = "/api/albums/";
+  static const String _albumApiSuffix = "/";
+  static const String _widgetApiPrefix = "/api/widgets/";
+  static const String _widgetApiSuffix = "/";
+
+  // 색상 및 패턴 상수들
+  static const String _nonePattern = "none";
+  static const String _defaultBackgroundColor = "#FFFFFF";
+  static const String _hexPrefix = "#";
+  static const String _alphaPrefix = "FF";
+  static const int _hexColorLength = 6;
+  static const int _hexRadix = 16;
+
+  // 파일 경로 상수들
+  static const String _patternAssetPath = "assets/patterns/";
+  static const String _patternFileExtension = ".png";
+
+  // 데이터 키 상수들
+  static const String _errorKey = "error";
+  static const String _widgetsKey = "widgets";
+  static const String _backgroundColorKey = "background_color";
+  static const String _backgroundPatternKey = "background_pattern";
+  static const String _extraDataKey = "extra_data";
+
   bool _isLoading = true;
   List<AlbumWidget> _userWidgets = [];
   Color _canvasColor = Colors.white;
-  String _canvasPattern = "none";
+  String _canvasPattern = _nonePattern;
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
-    _loadUserAlbumData();
+    _handleLoadUserAlbumData();
   }
 
-  // 사용자 앨범 데이터 로드
-  Future<void> _loadUserAlbumData() async {
+  /// 사용자 앨범 데이터 로드 처리
+  Future<void> _handleLoadUserAlbumData() async {
     setState(() {
       _isLoading = true;
       _errorMessage = '';
     });
 
     try {
-      // 1. 앨범 스타일 정보 가져오기
       final albumResponse = await _fetchUserAlbumInfo();
-      if (albumResponse.containsKey('error')) {
-        throw Exception(albumResponse['error']);
+      if (albumResponse.containsKey(_errorKey)) {
+        throw Exception(albumResponse[_errorKey]);
       }
 
-      // 캔버스 색상 및 패턴 설정
-      _canvasColor = _convertHexToColor(albumResponse["background_color"] ?? "#FFFFFF");
-      _canvasPattern = albumResponse["background_pattern"] ?? "none";
+      _canvasColor = _convertHexToColor(albumResponse[_backgroundColorKey] ?? _defaultBackgroundColor);
+      _canvasPattern = albumResponse[_backgroundPatternKey] ?? _nonePattern;
 
-      // 2. 위젯 정보 가져오기
       final widgets = await _fetchUserWidgets();
       setState(() {
         _userWidgets = widgets;
         _isLoading = false;
       });
     } catch (e) {
-      print("[ERROR] 사용자 앨범 데이터 로드 중 오류 발생: $e");
       setState(() {
-        _errorMessage = 'An error occurred while loading album data.';
+        _errorMessage = _albumLoadErrorMessage;
         _isLoading = false;
       });
     }
   }
 
-  // 사용자 앨범 정보 가져오기
+  /// 사용자 앨범 정보 가져오기
   Future<Map<String, dynamic>> _fetchUserAlbumInfo() async {
     try {
-      final endpoint = "/api/albums/${widget.userId}/";
+      final endpoint = "$_albumApiPrefix${widget.userId}$_albumApiSuffix";
       return await ApiService.sendRequest(endpoint: endpoint);
     } catch (e) {
-      print("[ERROR] 사용자 앨범 정보 가져오기 실패: $e");
-      return {"error": "앨범 정보를 가져오는데 실패했습니다."};
+      return {_errorKey: _albumInfoFetchErrorMessage};
     }
   }
 
-  // 사용자 위젯 정보 가져오기
+  /// 사용자 위젯 정보 가져오기
   Future<List<AlbumWidget>> _fetchUserWidgets() async {
     try {
-      final endpoint = "/api/widgets/${widget.userId}/";
+      final endpoint = "$_widgetApiPrefix${widget.userId}$_widgetApiSuffix";
       final response = await ApiService.sendRequest(endpoint: endpoint);
 
-      if (response.containsKey("error") || !response.containsKey("widgets")) {
-        print("[ERROR] 위젯 데이터 가져오기 실패: ${response["error"] ?? "widgets 키가 없음"}");
+      if (response.containsKey(_errorKey) || !response.containsKey(_widgetsKey)) {
         return [];
       }
 
-      List<dynamic> widgetsJson = response["widgets"];
+      List<dynamic> widgetsJson = response[_widgetsKey];
       List<AlbumWidget> widgets = [];
 
       for (var json in widgetsJson) {
         try {
-          // extra_data 처리
-          if (json.containsKey('extra_data') && json['extra_data'] is String) {
+          if (json.containsKey(_extraDataKey) && json[_extraDataKey] is String) {
             try {
               Map<String, dynamic> parsedExtraData = {};
-              if (json['extra_data'].isNotEmpty) {
-                parsedExtraData = Map<String, dynamic>.from(json['extra_data']);
+              if (json[_extraDataKey].isNotEmpty) {
+                parsedExtraData = Map<String, dynamic>.from(json[_extraDataKey]);
               }
-              json['extra_data'] = parsedExtraData;
+              json[_extraDataKey] = parsedExtraData;
             } catch (e) {
-              json['extra_data'] = {};
+              json[_extraDataKey] = {};
             }
           }
 
           widgets.add(AlbumWidget.fromJson(json));
         } catch (e) {
-          print("[ERROR] 위젯 변환 실패: $e, 데이터: $json");
+          // 에러 처리
         }
       }
 
       return widgets;
     } catch (e) {
-      print("[ERROR] 사용자 위젯 정보 가져오기 실패: $e");
       return [];
     }
   }
 
-  // 헥스 코드를 Color 객체로 변환
+  /// 헥스 코드를 Color 객체로 변환
   Color _convertHexToColor(String hexColor) {
-    hexColor = hexColor.toUpperCase().replaceAll("#", "");
-    if (hexColor.length == 6) {
-      hexColor = "FF$hexColor";
+    hexColor = hexColor.toUpperCase().replaceAll(_hexPrefix, "");
+    if (hexColor.length == _hexColorLength) {
+      hexColor = "$_alphaPrefix$hexColor";
     }
-    return Color(int.parse(hexColor, radix: 16));
+    return Color(int.parse(hexColor, radix: _hexRadix));
   }
 
-  // 읽기 전용 위젯 렌더링
+  /// 읽기 전용 위젯 렌더링
   Widget _buildReadOnlyWidget(AlbumWidget widget) {
-    // 위젯 타입에 따라 다른 위젯 반환
     Widget content;
 
-    if (widget.type == "profile_image") {
+    if (widget.type == _profileImageType) {
       content = ProfileImageWidget(widget: widget);
-    } else if (widget.type == "checklist") {
+    } else if (widget.type == _checklistType) {
       content = ChecklistWidget(widget: widget);
-    } else if (widget.type == "text_box") {
-      // 텍스트박스 위젯 처리 추가
-      // 읽기 전용 모드를 위해 isSelected를 false로 설정
+    } else if (widget.type == _textBoxType) {
       content = TextBoxWidget(
         widget: widget,
-        isSelected: false, // 읽기 전용 모드
+        isSelected: false,
       );
     } else {
-      // 지원되지 않는 위젯 타입
       content = Container(
         color: Colors.grey,
         child: Center(child: Text(widget.type)),
       );
     }
 
-    // 고정된 위치에 표시 (드래그 불가능)
     return Positioned(
       left: widget.x,
       top: widget.y,
@@ -167,6 +202,55 @@ class _UserAlbumContentWidgetState extends State<UserAlbumContentWidget> with Au
     );
   }
 
+  /// 에러 화면 위젯 생성
+  Widget _buildErrorScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, size: _errorIconSize, color: Colors.red),
+          SizedBox(height: _errorIconSpacing),
+          Text(_errorMessage, style: TextStyle(fontSize: _errorMessageFontSize)),
+          SizedBox(height: _errorButtonSpacing),
+          ElevatedButton(
+            onPressed: _handleLoadUserAlbumData,
+            child: Text(_retryButtonText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 빈 앨범 화면 위젯 생성
+  Widget _buildEmptyAlbumScreen() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.view_module_outlined, size: _noWidgetsIconSize, color: Colors.grey),
+          SizedBox(height: _noWidgetsIconSpacing),
+          Text(
+            "${widget.username}$_noWidgetsMessageSuffix",
+            style: TextStyle(fontSize: _noWidgetsMessageFontSize, color: Colors.grey[700]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 캔버스 배경 데코레이션 생성
+  BoxDecoration _buildCanvasDecoration() {
+    return BoxDecoration(
+      color: _canvasColor,
+      image: _canvasPattern == _nonePattern
+          ? null
+          : DecorationImage(
+        image: AssetImage("$_patternAssetPath$_canvasPattern$_patternFileExtension"),
+        repeat: ImageRepeat.repeat,
+      ),
+    );
+  }
+
   @override
   bool get wantKeepAlive => true;
 
@@ -174,64 +258,22 @@ class _UserAlbumContentWidgetState extends State<UserAlbumContentWidget> with Au
   Widget build(BuildContext context) {
     super.build(context);
 
-    // 로딩 중이면 로딩 화면 표시
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
-    // 오류 발생 시 오류 메시지 표시
     if (_errorMessage.isNotEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 48, color: Colors.red),
-            SizedBox(height: 16),
-            Text(_errorMessage, style: TextStyle(fontSize: 16)),
-            SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _loadUserAlbumData,
-              child: Text('Retry'),
-            ),
-          ],
-        ),
-      );
+      return _buildErrorScreen();
     }
 
     return Container(
       width: double.infinity,
       height: double.infinity,
-      decoration: BoxDecoration(
-        color: _canvasColor,
-        image: _canvasPattern == "none"
-            ? null
-            : DecorationImage(
-          image: AssetImage("assets/patterns/${_canvasPattern}.png"),
-          repeat: ImageRepeat.repeat,
-        ),
-      ),
+      decoration: _buildCanvasDecoration(),
       child: Stack(
         children: [
-          // 사용자의 위젯 렌더링 (읽기 전용)
           ..._userWidgets.map((widget) => _buildReadOnlyWidget(widget)),
-
-          // 위젯이 없는 경우 안내 메시지 표시
-          if (_userWidgets.isEmpty)
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.view_module_outlined, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text(
-                    "${widget.username}'s album has no widgets.",
-                    style: TextStyle(fontSize: 16, color: Colors.grey[700]),
-                  ),
-                ],
-              ),
-            ),
+          if (_userWidgets.isEmpty) _buildEmptyAlbumScreen(),
         ],
       ),
     );

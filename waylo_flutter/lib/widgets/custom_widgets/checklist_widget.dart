@@ -312,6 +312,7 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
                   decoration: InputDecoration(
                     isDense: true,
@@ -319,6 +320,8 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(4),
                     ),
+                    fillColor: Colors.white,
+                    filled: true,
                   ),
                 )
                     : Text(
@@ -326,6 +329,7 @@ class _ChecklistWidgetState extends State<ChecklistWidget> {
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
+                    color: Colors.black,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),

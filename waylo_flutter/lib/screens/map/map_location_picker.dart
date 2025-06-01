@@ -1,4 +1,3 @@
-// lib/screen/map/map_location_picker.dart
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:mapbox_maps_flutter/mapbox_maps_flutter.dart';
@@ -26,9 +25,67 @@ class MapLocationPicker extends StatefulWidget {
 }
 
 class _MapLocationPickerState extends State<MapLocationPicker> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Select Location";
+  static const String _searchHintText = "Search location";
+  static const String _searchErrorMessage = "Error occurred during search";
+  static const String _searchErrorWithCodePrefix = "Error occurred during search (";
+  static const String _searchErrorWithCodeSuffix = ")";
+  static const String _locationSelectErrorMessage = "Unable to select location.";
+
+  // API 관련 상수들
+  static const String _mapboxGeocodingBaseUrl = 'https://api.mapbox.com/geocoding/v5/mapbox.places/';
+  static const String _geocodingUrlSuffix = '.json?access_token=';
+  static const String _proximityParam = '&proximity=';
+  static const String _languageParam = '&language=en';
+  static const String _limitParam = '&limit=';
+  static const String _featuresKey = 'features';
+  static const String _placeNameKey = 'place_name';
+  static const String _textKey = 'text';
+  static const String _geometryKey = 'geometry';
+  static const String _coordinatesKey = 'coordinates';
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 16;
+
+  // 크기 상수들
+  static const double _searchBarTopPosition = 16;
+  static const double _searchBarHorizontalPosition = 16;
+  static const double _searchResultsTopPosition = 72;
+  static const double _errorMessageTopPosition = 72;
+  static const double _loadingIndicatorTopPosition = 72;
+  static const double _loadingIndicatorRightPosition = 16;
+  static const double _fabBottomPosition = 16;
+  static const double _fabRightPosition = 16;
+  static const double _borderRadius = 8;
+  static const double _shadowBlurRadius = 4;
+  static const double _shadowOffsetY = 2;
+  static const double _searchBarHorizontalPadding = 16;
+  static const double _searchBarVerticalPadding = 12;
+  static const double _searchResultsMaxHeight = 300;
+  static const double _errorMessagePadding = 8;
+  static const double _loadingIndicatorPadding = 8;
+  static const double _loadingIndicatorSize = 24;
+  static const double _loadingIndicatorStroke = 2;
+  static const double _centerPointerShadowSize = 26;
+  static const double _centerPointerMainSize = 24;
+
+  // 지도 관련 상수들
+  static const double _initialMapZoom = 10.0;
+  static const double _selectedLocationZoom = 15.0;
+  static const int _cameraAnimationDuration = 1000;
+  static const int _searchMinLength = 2;
+  static const int _searchLimit = 10;
+
+  // 투명도 상수들
+  static const double _errorBackgroundOpacity = 0.3;
+
+  // HTTP 상태 코드 상수들
+  static const int _httpStatusOk = 200;
+
   late MapboxMap mapboxMap;
   bool _isMapInitialized = false;
-  TextEditingController _searchController = TextEditingController();
+  final TextEditingController _searchController = TextEditingController();
   List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
   String? _selectedPlaceName;
@@ -50,7 +107,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     final backgroundColor = isDarkMode ? AppColors.darkCard : Colors.white;
     final textColor = isDarkMode ? Colors.white : Colors.black87;
     final hintTextColor = isDarkMode ? Colors.white70 : Colors.grey;
-    final errorBackgroundColor = isDarkMode ? Colors.red[900]!.withOpacity(0.3) : Colors.red[100]!;
+    final errorBackgroundColor = isDarkMode ? Colors.red[900]!.withOpacity(_errorBackgroundOpacity) : Colors.red[100]!;
     final errorTextColor = isDarkMode ? Colors.red[100]! : Colors.red[900]!;
 
     return Scaffold(
@@ -59,8 +116,12 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
             ? AppColors.darkSurface
             : AppColors.primary,
         title: const Text(
-          "Select Location",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          _appBarTitle,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: _appBarTitleFontSize,
+          ),
         ),
         centerTitle: true,
       ),
@@ -76,25 +137,25 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                       widget.initialLatitude
                   )
               ),
-              zoom: 10.0,
+              zoom: _initialMapZoom,
             ),
             onMapCreated: _onMapCreated,
           ),
 
           // Search bar
           Positioned(
-            top: 16,
-            left: 16,
-            right: 16,
+            top: _searchBarTopPosition,
+            left: _searchBarHorizontalPosition,
+            right: _searchBarHorizontalPosition,
             child: Container(
               decoration: BoxDecoration(
                 color: backgroundColor,
-                borderRadius: BorderRadius.circular(8),
-                boxShadow: [
+                borderRadius: BorderRadius.circular(_borderRadius),
+                boxShadow: const [
                   BoxShadow(
                     color: Colors.black26,
-                    blurRadius: 4,
-                    offset: Offset(0, 2),
+                    blurRadius: _shadowBlurRadius,
+                    offset: Offset(0, _shadowOffsetY),
                   )
                 ],
               ),
@@ -102,7 +163,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                 controller: _searchController,
                 style: TextStyle(color: textColor),
                 decoration: InputDecoration(
-                  hintText: 'Search location',
+                  hintText: _searchHintText,
                   hintStyle: TextStyle(color: hintTextColor),
                   prefixIcon: Icon(Icons.search, color: isDarkMode ? Colors.white70 : null),
                   suffixIcon: _searchController.text.isNotEmpty
@@ -117,10 +178,13 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                   )
                       : null,
                   border: InputBorder.none,
-                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: _searchBarHorizontalPadding,
+                    vertical: _searchBarVerticalPadding,
+                  ),
                 ),
                 onChanged: (value) {
-                  if (value.length > 1) {
+                  if (value.length > _searchMinLength) {
                     _searchPlaces(value);
                   } else if (value.isEmpty) {
                     setState(() {
@@ -135,21 +199,21 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
           // Search results list
           if (_searchResults.isNotEmpty)
             Positioned(
-              top: 72,
-              left: 16,
-              right: 16,
+              top: _searchResultsTopPosition,
+              left: _searchBarHorizontalPosition,
+              right: _searchBarHorizontalPosition,
               child: Container(
-                constraints: BoxConstraints(
-                  maxHeight: 300,
+                constraints: const BoxConstraints(
+                  maxHeight: _searchResultsMaxHeight,
                 ),
                 decoration: BoxDecoration(
                   color: backgroundColor,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
+                  borderRadius: BorderRadius.circular(_borderRadius),
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black26,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      blurRadius: _shadowBlurRadius,
+                      offset: Offset(0, _shadowOffsetY),
                     )
                   ],
                 ),
@@ -160,11 +224,11 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
                     final place = _searchResults[index];
                     return ListTile(
                       title: Text(
-                        place['place_name'] ?? '',
+                        place[_placeNameKey] ?? '',
                         style: TextStyle(color: textColor),
                       ),
                       subtitle: Text(
-                        place['text'] ?? '',
+                        place[_textKey] ?? '',
                         style: TextStyle(color: hintTextColor),
                       ),
                       onTap: () => _onPlaceSelected(place),
@@ -177,14 +241,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
           // Error message
           if (_errorMessage.isNotEmpty)
             Positioned(
-              top: 72,
-              left: 16,
-              right: 16,
+              top: _errorMessageTopPosition,
+              left: _searchBarHorizontalPosition,
+              right: _searchBarHorizontalPosition,
               child: Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(_errorMessagePadding),
                 decoration: BoxDecoration(
                   color: errorBackgroundColor,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(_borderRadius),
                 ),
                 child: Text(
                   _errorMessage,
@@ -196,26 +260,26 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
           // Loading indicator
           if (_isSearching)
             Positioned(
-              top: 72,
-              right: 16,
+              top: _loadingIndicatorTopPosition,
+              right: _loadingIndicatorRightPosition,
               child: Container(
-                padding: EdgeInsets.all(8),
+                padding: const EdgeInsets.all(_loadingIndicatorPadding),
                 decoration: BoxDecoration(
                   color: backgroundColor,
                   shape: BoxShape.circle,
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
                       color: Colors.black26,
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
+                      blurRadius: _shadowBlurRadius,
+                      offset: Offset(0, _shadowOffsetY),
                     )
                   ],
                 ),
                 child: SizedBox(
-                  width: 24,
-                  height: 24,
+                  width: _loadingIndicatorSize,
+                  height: _loadingIndicatorSize,
                   child: CircularProgressIndicator(
-                    strokeWidth: 2,
+                    strokeWidth: _loadingIndicatorStroke,
                     valueColor: AlwaysStoppedAnimation<Color>(
                         isDarkMode ? Colors.white : AppColors.primary
                     ),
@@ -225,20 +289,20 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
             ),
 
           // Center pointer
-          Center(
+          const Center(
             child: Stack(
               children: [
                 // 그림자 효과용 아이콘 (약간 오프셋)
                 Icon(
                   Icons.add,
                   color: Colors.black,
-                  size: 26,
+                  size: _centerPointerShadowSize,
                 ),
                 // 메인 아이콘
                 Icon(
                   Icons.add,
                   color: Colors.white,
-                  size: 24,
+                  size: _centerPointerMainSize,
                 ),
               ],
             ),
@@ -246,14 +310,14 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
 
           // Confirm button
           Positioned(
-            bottom: 16,
-            right: 16,
+            bottom: _fabBottomPosition,
+            right: _fabRightPosition,
             child: SafeArea(
               child: FloatingActionButton(
                 backgroundColor: isDarkMode ? AppColors.primary : AppColors.primary,
                 foregroundColor: Colors.white,
                 onPressed: _confirmLocation,
-                child: Icon(Icons.check),
+                child: const Icon(Icons.check),
               ),
             ),
           ),
@@ -296,16 +360,16 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     try {
       // Mapbox Geocoding API 직접 호출 (language 파라미터 추가)
       final url = Uri.parse(
-          'https://api.mapbox.com/geocoding/v5/mapbox.places/$query.json?access_token=${widget.accessToken}'
-              '&proximity=${widget.initialLongitude},${widget.initialLatitude}'
-              '&language=en' // 영어 결과 요청
-              '&limit=10');
+          '$_mapboxGeocodingBaseUrl$query$_geocodingUrlSuffix${widget.accessToken}'
+              '$_proximityParam${widget.initialLongitude},${widget.initialLatitude}'
+              '$_languageParam' // 영어 결과 요청
+              '$_limitParam$_searchLimit');
 
       final response = await http.get(url);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == _httpStatusOk) {
         final data = json.decode(response.body);
-        final features = data['features'] as List;
+        final features = data[_featuresKey] as List;
 
         setState(() {
           _searchResults = List<Map<String, dynamic>>.from(features);
@@ -314,20 +378,20 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
 
         print("검색 결과: ${_searchResults.length}개");
         if (_searchResults.isNotEmpty) {
-          print("첫 번째 결과: ${_searchResults.first['place_name']}");
+          print("첫 번째 결과: ${_searchResults.first[_placeNameKey]}");
         }
       } else {
         print('장소 검색 API 오류: ${response.statusCode}');
         setState(() {
           _isSearching = false;
-          _errorMessage = 'Error occurred during search (${response.statusCode})';
+          _errorMessage = '$_searchErrorWithCodePrefix${response.statusCode}$_searchErrorWithCodeSuffix';
         });
       }
     } catch (e) {
       print('장소 검색 예외 발생: $e');
       setState(() {
         _isSearching = false;
-        _errorMessage = 'Error occurred during search';
+        _errorMessage = _searchErrorMessage;
         _searchResults.clear();
       });
     }
@@ -337,7 +401,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
   void _onPlaceSelected(Map<String, dynamic> place) {
     try {
       // 좌표 추출
-      final coordinates = place['geometry']['coordinates'] as List;
+      final coordinates = place[_geometryKey][_coordinatesKey] as List;
 
       if (coordinates.length >= 2) {
         // Mapbox에서는 [경도, 위도] 순서로 반환
@@ -345,8 +409,8 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
         final double lat = coordinates[1];
 
         setState(() {
-          _selectedPlaceName = place['place_name'];
-          _searchController.text = place['text'] ?? '';
+          _selectedPlaceName = place[_placeNameKey];
+          _searchController.text = place[_textKey] ?? '';
           _searchResults.clear();
         });
 
@@ -354,9 +418,9 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
         mapboxMap.flyTo(
           CameraOptions(
             center: Point(coordinates: Position(lng, lat)),
-            zoom: 15.0,
+            zoom: _selectedLocationZoom,
           ),
-          MapAnimationOptions(duration: 1000),
+          MapAnimationOptions(duration: _cameraAnimationDuration),
         );
       } else {
         print("좌표를 추출할 수 없습니다");
@@ -389,7 +453,7 @@ class _MapLocationPickerState extends State<MapLocationPicker> {
     } catch (e) {
       print("위치 확인 오류: $e");
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Unable to select location.'))
+          const SnackBar(content: Text(_locationSelectErrorMessage))
       );
     }
   }

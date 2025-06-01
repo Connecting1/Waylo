@@ -1,5 +1,3 @@
-// lib/screens/profile/user_map_content.dart
-
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'dart:typed_data';
@@ -12,7 +10,6 @@ import 'package:waylo_flutter/screens/feed/feed_detail_sheet.dart';
 import '../../../styles/app_styles.dart';
 import 'dart:ui' as ui;
 import 'package:waylo_flutter/services/api/feed_api.dart';
-
 import '../../services/api/api_service.dart';
 
 // 마커 클릭 리스너 클래스
@@ -27,7 +24,7 @@ class UserPointClickListener implements OnPointAnnotationClickListener {
   }
 }
 
-// 마커 클릭 리스너 클래스 추가
+// 국가 마커 클릭 리스너 클래스
 class CountryPointClickListener implements OnPointAnnotationClickListener {
   final UserMapContentWidgetState state;
 
@@ -54,6 +51,73 @@ class UserMapContentWidget extends StatefulWidget {
 }
 
 class UserMapContentWidgetState extends State<UserMapContentWidget> with AutomaticKeepAliveClientMixin {
+  // 텍스트 상수들
+  static const String _loadingFeedsText = "Loading feeds...";
+
+  // 에러 메시지 상수들
+  static const String _userFeedsLoadFailureMessage = "Failed to load user's feeds.";
+  static const String _userFeedsLoadErrorMessage = "An error occurred while loading user's feed data.";
+
+  // 폰트 크기 상수들
+  static const double _loadingTextFontSize = 12;
+
+  // 크기 상수들
+  static const double _initialZoomLevel = 2.0;
+  static const double _countryZoomLevel = 5.0;
+  static const double _zoomThreshold = 4.0;
+  static const double _userLocationIconSize = 1.2;
+  static const double _feedMarkerIconSize = 1.0;
+  static const double _countryMarkerIconSize = 0.3;
+
+  // 이미지 크기 상수들
+  static const int _userLocationImageSize = 120;
+  static const int _userLocationPhotoSize = 100;
+  static const double _userLocationBorderWidth = 7.0;
+  static const int _feedMarkerImageSize = 170;
+  static const int _feedMarkerPhotoSize = 150;
+  static const double _feedMarkerBorderWidth = 7.0;
+
+  // 애니메이션 지속시간 상수들
+  static const int _countryFlyToAnimationDuration = 1500;
+
+  // 타이머 간격 상수들
+  static const int _locationUpdateInterval = 30;
+  static const int _zoomCheckTimerInterval = 500;
+
+  // URL 상수들
+  static const String _flagUrlPrefix = "https://flagcdn.com/w320/";
+  static const String _flagUrlSuffix = ".png";
+  static const String _flagUrlAlternativePrefix = "https://flagcdn.com/";
+  static const String _mapboxGeocodingBaseUrl = "https://api.mapbox.com/geocoding/v5/mapbox.places/";
+  static const String _countryTypeParam = "?types=country&access_token=";
+
+  // 파일 경로 상수들
+  static const String _defaultFlagIconPath = "assets/icons/default_flag.png";
+
+  // API 엔드포인트 상수들
+  static const String _locationSettingsApiPrefix = "/api/users/";
+  static const String _locationSettingsApiSuffix = "/location-settings/";
+  static const String _locationApiSuffix = "/location/";
+
+  // 기타 상수들
+  static const String _unknownCountryCode = "UNKNOWN";
+  static const String _accessTokenKey = "ACCESS_TOKEN";
+  static const double _borderRadius = 8.0;
+  static const double _circularBorderRadius = 20.0;
+  static const double _loadingIndicatorStrokeWidth = 2.0;
+  static const double _loadingContainerPadding = 8.0;
+  static const double _loadingSpacing = 8.0;
+  static const double _loadingIndicatorSize = 20.0;
+  static const double _mapTopPosition = 20.0;
+  static const double _mapRightPosition = 20.0;
+
+  // 데이터 키 상수들
+  static const String _isSharingKey = "is_sharing";
+  static const String _latitudeKey = "latitude";
+  static const String _longitudeKey = "longitude";
+  static const String _profileImageKey = "profile_image";
+  static const String _feedsKey = "feeds";
+
   late MapboxMap mapboxMap;
   late String accessToken;
   PointAnnotationManager? feedAnnotationManager;
@@ -64,7 +128,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
   Timer? _locationUpdateTimer;
 
   Map<String, Map<String, dynamic>> countryData = {};
-  double currentZoomLevel = 2.0;
+  double currentZoomLevel = _initialZoomLevel;
 
   List<PointAnnotation> feedMarkers = [];
   List<PointAnnotation> countryFeedMarkers = [];
@@ -72,7 +136,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
   Map<String, Map<String, double>> _countryCenterCache = {};
 
   List<Feed> userFeeds = [];
-  Map<String, List<Feed>> _countryFeeds = {}; // 국가 코드별 피드 그룹
+  Map<String, List<Feed>> _countryFeeds = {};
   Map<String, PointAnnotation> _countryMarkerMap = {};
   bool _hasGroupedByCountry = false;
 
@@ -83,242 +147,143 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
   @override
   void initState() {
     super.initState();
-    accessToken = const String.fromEnvironment("ACCESS_TOKEN");
+    accessToken = const String.fromEnvironment(_accessTokenKey);
     MapboxOptions.setAccessToken(accessToken);
 
-    // 위치 공유 확인 및 피드 로드
     Future.microtask(() {
-      _loadUserFeeds();
-      _checkUserLocationSharing();
+      _handleLoadUserFeeds();
+      _handleCheckUserLocationSharing();
     });
   }
 
-  // 사용자 위치 공유 상태 확인 메서드
-  Future<void> _checkUserLocationSharing() async {
+  /// 사용자 위치 공유 상태 확인 처리
+  Future<void> _handleCheckUserLocationSharing() async {
     try {
-      // 서버에서 사용자 위치 공유 설정 확인
-      final endpoint = "/api/users/${widget.userId}/location-settings/";
+      final endpoint = "$_locationSettingsApiPrefix${widget.userId}$_locationSettingsApiSuffix";
       final response = await ApiService.sendRequest(endpoint: endpoint);
 
-      bool isSharing = response["is_sharing"] == true;
+      bool isSharing = response[_isSharingKey] == true;
 
       if (isSharing) {
-        // 위치 공유 활성화된 경우 위치 데이터 로드 시작
-        _startLocationTracking();
+        _handleStartLocationTracking();
       } else {
-        // 위치 공유 비활성화된 경우 마커 제거
-        _stopLocationTracking();
+        _handleStopLocationTracking();
       }
     } catch (e) {
-      print("[ERROR] 사용자 위치 공유 설정 확인 오류: $e");
+      // 에러 처리
     }
   }
 
-  // 위치 추적 시작 메서드
-  void _startLocationTracking() {
+  /// 위치 추적 시작 처리
+  void _handleStartLocationTracking() {
     if (_isLocationSharing || !isMapInitialized) return;
 
     _isLocationSharing = true;
-    print("[위치 추적] 시작");
 
-    // 위치 갱신 타이머 설정 (30초 간격)
     _locationUpdateTimer = Timer.periodic(
-        Duration(seconds: 30),
-            (_) => _updateUserLocationMarker()
+        Duration(seconds: _locationUpdateInterval),
+            (_) => _handleUpdateUserLocationMarker()
     );
 
-    // 최초 한 번 즉시 업데이트
-    _updateUserLocationMarker();
+    _handleUpdateUserLocationMarker();
   }
 
-  // 위치 추적 중지 메서드
-  void _stopLocationTracking() {
+  /// 위치 추적 중지 처리
+  void _handleStopLocationTracking() {
     _isLocationSharing = false;
-    print("[위치 추적] 중지");
 
-    // 타이머 취소
     _locationUpdateTimer?.cancel();
     _locationUpdateTimer = null;
 
-    // 사용자 위치 마커 제거
-    _removeUserLocationMarker();
+    _handleRemoveUserLocationMarker();
   }
 
-// 사용자 위치 마커 업데이트
-  Future<void> _updateUserLocationMarker() async {
+  /// 사용자 위치 마커 업데이트 처리
+  Future<void> _handleUpdateUserLocationMarker() async {
     if (!isMapInitialized) return;
 
     try {
-      // 서버에서 사용자 위치 정보 가져오기
-      final endpoint = "/api/users/${widget.userId}/location/";
+      final endpoint = "$_locationSettingsApiPrefix${widget.userId}$_locationApiSuffix";
       final response = await ApiService.sendRequest(endpoint: endpoint);
 
-      if (!response.containsKey("latitude") || !response.containsKey("longitude")) {
-        print("[위치 추적] 위치 데이터 없음");
+      if (!response.containsKey(_latitudeKey) || !response.containsKey(_longitudeKey)) {
         return;
       }
 
-      // 위도/경도 파싱
-      double latitude = double.parse(response["latitude"].toString());
-      double longitude = double.parse(response["longitude"].toString());
+      double latitude = double.parse(response[_latitudeKey].toString());
+      double longitude = double.parse(response[_longitudeKey].toString());
 
-      print("[위치 추적] 현재 위치: $latitude, $longitude");
-
-      // 사용자 프로필 이미지 URL 가져오기
-      String profileImageUrl = response["profile_image"] ?? "";
+      String profileImageUrl = response[_profileImageKey] ?? "";
       if (profileImageUrl.isEmpty) {
-        print("[위치 추적] 프로필 이미지 없음");
         return;
       }
 
-      // 상대 경로를 전체 URL로 변환
       if (profileImageUrl.startsWith('/')) {
         profileImageUrl = "${ApiService.baseUrl}$profileImageUrl";
       }
 
-      // 프로필 이미지 다운로드
       Uint8List? imageData = await _downloadImage(profileImageUrl);
       if (imageData == null) {
-        print("[위치 추적] 이미지 다운로드 실패");
         return;
       }
 
-      // 원형 테두리 추가
       Uint8List circleImage = await _addCircleBorderToImage(imageData);
 
-      // 이전 마커 제거
       if (userLocationMarker != null && userLocationAnnotationManager != null) {
         await userLocationAnnotationManager!.delete(userLocationMarker!);
         userLocationMarker = null;
       }
 
-      // 사용자 위치 마커 매니저 생성
       if (userLocationAnnotationManager == null) {
         userLocationAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
       }
 
-      // 마커 생성
       PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
         geometry: Point(coordinates: Position(longitude, latitude)),
         image: circleImage,
-        iconSize: 1.2, // 일반 마커보다 약간 크게
+        iconSize: _userLocationIconSize,
       );
 
       userLocationMarker = await userLocationAnnotationManager!.create(pointAnnotationOptions);
-      print("[위치 추적] 마커 생성 완료");
 
     } catch (e) {
-      print("[위치 추적] 오류: $e");
+      // 에러 처리
     }
   }
 
-  // 사용자 위치 마커 제거 메서드
-  Future<void> _removeUserLocationMarker() async {
+  /// 사용자 위치 마커 제거 처리
+  Future<void> _handleRemoveUserLocationMarker() async {
     if (userLocationMarker != null && userLocationAnnotationManager != null) {
       try {
         await userLocationAnnotationManager!.delete(userLocationMarker!);
         userLocationMarker = null;
-        print("[위치 추적] 마커 제거 완료");
       } catch (e) {
-        print("[위치 추적] 마커 제거 오류: $e");
+        // 에러 처리
       }
     }
   }
 
-  // 프로필 이미지를 원형으로 처리하는 메서드
-  Future<Uint8List> _addCircleBorderToImage(Uint8List imageBytes) async {
-    final int size = 120;  // 최종 이미지 크기
-    final int photoSize = 100;  // 실제 사진 크기
-    final double borderWidth = 7.0;  // 테두리 두께
-
-    final ui.PictureRecorder recorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
-
-    // 이미지 디코딩
-    final ui.Codec codec = await ui.instantiateImageCodec(imageBytes);
-    final ui.FrameInfo frameInfo = await codec.getNextFrame();
-
-    final double photoLeft = (size - photoSize) / 2;
-    final double photoTop = (size - photoSize) / 2;
-
-    // 파란색 원형 테두리 그리기
-    final Paint borderPaint = Paint()
-      ..color = AppColors.primary  // 파란색 테두리
-      ..style = PaintingStyle.fill;
-
-    // 테두리용 원
-    canvas.drawCircle(
-      Offset(size / 2, size / 2),
-      photoSize / 2 + borderWidth,
-      borderPaint,
-    );
-
-    // 이미지를 원형으로 클리핑
-    final Path clipPath = Path()
-      ..addOval(Rect.fromLTWH(photoLeft, photoTop, photoSize.toDouble(), photoSize.toDouble()));
-
-    canvas.clipPath(clipPath);
-
-    // 이미지 비율 계산
-    double srcWidth = frameInfo.image.width.toDouble();
-    double srcHeight = frameInfo.image.height.toDouble();
-    double srcX = 0;
-    double srcY = 0;
-
-    // 정사각형으로 크롭
-    if (srcWidth > srcHeight) {
-      srcX = (srcWidth - srcHeight) / 2;
-      srcWidth = srcHeight;
-    } else if (srcHeight > srcWidth) {
-      srcY = (srcHeight - srcWidth) / 2;
-      srcHeight = srcWidth;
-    }
-
-    // 이미지 그리기
-    final Rect srcRect = Rect.fromLTWH(srcX, srcY, srcWidth, srcHeight);
-    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, photoSize.toDouble(), photoSize.toDouble());
-
-    canvas.drawImageRect(frameInfo.image, srcRect, destRect, Paint());
-
-    // 최종 이미지 생성
-    final ui.Image image = await recorder.endRecording().toImage(size, size);
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
-    return byteData!.buffer.asUint8List();
-  }
-
-  // 마커 클릭 처리 함수
+  /// 마커 클릭 처리
   void _handleFeedMarkerClick(PointAnnotation annotation) {
-    print("마커 클릭됨: ${annotation.id}");
-
-    // 클릭된 마커에 해당하는 피드 ID 찾기
     String? feedId;
     feedMarkersMap.forEach((id, marker) {
       if (marker.id == annotation.id) {
         feedId = id;
-        print("피드 ID 찾음: $id");
       }
     });
 
     if (feedId != null) {
-      // 피드 ID를 이용해 피드 객체 찾기
       try {
         Feed feed = userFeeds.firstWhere((feed) => feed.id == feedId);
-        print("피드 객체 찾음: ${feed.id}, 사용자=${feed.username}");
-        _showFeedDetailSheet(feed);
+        _handleShowFeedDetailSheet(feed);
       } catch (e) {
-        print("[ERROR] 피드를 찾을 수 없음: $e");
+        // 에러 처리
       }
-    } else {
-      print("피드 ID를 찾을 수 없음");
     }
   }
 
-  // 국가 마커 클릭 처리 함수
+  /// 국가 마커 클릭 처리
   void _handleCountryMarkerClick(PointAnnotation annotation) {
-    print("국가 마커 클릭됨: ${annotation.id}");
-
-    // 클릭된 마커에 해당하는 국가 정보 찾기
     String? countryCode;
     for (String code in _countryMarkerMap.keys) {
       if (_countryMarkerMap[code]?.id == annotation.id) {
@@ -328,26 +293,24 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     }
 
     if (countryCode != null) {
-      // 해당 국가의 중심 좌표 찾기
       Map<String, double>? centerCoords = _countryCenterCache[countryCode];
       if (centerCoords != null) {
-        // 국가로 줌인
         mapboxMap.flyTo(
           CameraOptions(
             center: Point(coordinates: Position(
                 centerCoords['lng']!,
                 centerCoords['lat']!
             )),
-            zoom: 5.0, // 적절한 줌 레벨 설정
+            zoom: _countryZoomLevel,
           ),
-          MapAnimationOptions(duration: 1500), // 애니메이션 지속시간
+          MapAnimationOptions(duration: _countryFlyToAnimationDuration),
         );
       }
     }
   }
 
-  // Bottom Sheet 표시 함수 - 읽기 전용 모드
-  void _showFeedDetailSheet(Feed feed) {
+  /// Bottom Sheet 표시 처리
+  void _handleShowFeedDetailSheet(Feed feed) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -356,7 +319,6 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
         return FeedDetailSheet(
           feed: feed,
           onEditPressed: (_) {
-            // 다른 사용자의 피드는 수정할 수 없으므로 바텀시트만 닫음
             Navigator.pop(context);
           },
         );
@@ -364,28 +326,26 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     );
   }
 
-  Future<void> _loadUserFeeds() async {
+  /// 사용자 피드 로드 처리
+  Future<void> _handleLoadUserFeeds() async {
     setState(() {
       _isLoadingFeeds = true;
     });
 
     try {
-      // FeedApi를 사용하여 특정 사용자의 피드 가져오기
       final response = await FeedApi.fetchUserFeeds(widget.userId);
 
-      if (response is Map && response.containsKey('feeds')) {
-        List<dynamic> feedsData = response['feeds'];
+      if (response is Map && response.containsKey(_feedsKey)) {
+        List<dynamic> feedsData = response[_feedsKey];
         setState(() {
           userFeeds = feedsData.map((feedJson) => Feed.fromJson(feedJson)).toList();
         });
 
-        _groupFeedsByCountry(); // 국가별로 피드 그룹화
+        _handleGroupFeedsByCountry();
 
         if (isMapInitialized) {
-          if (userFeeds.isEmpty) {
-            // 피드가 없는 경우 처리
-          } else {
-            if (currentZoomLevel > 4.0) {
+          if (userFeeds.isNotEmpty) {
+            if (currentZoomLevel > _zoomThreshold) {
               await _addFeedMarkersToMap(userFeeds);
             } else {
               await _addCountryFeedMarkers();
@@ -393,18 +353,16 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
           }
         }
       } else {
-        print("[ERROR] 사용자 피드 로드 실패");
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Failed to load user's feeds.")),
+            SnackBar(content: Text(_userFeedsLoadFailureMessage)),
           );
         }
       }
     } catch (e) {
-      print("[ERROR] 사용자 피드 로드 오류: $e");
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("An error occurred while loading user's feed data.")),
+          SnackBar(content: Text(_userFeedsLoadErrorMessage)),
         );
       }
     } finally {
@@ -416,14 +374,14 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     }
   }
 
-  // 국가별 피드 그룹화 메서드
-  void _groupFeedsByCountry() {
+  /// 국가별 피드 그룹화 처리
+  void _handleGroupFeedsByCountry() {
     if (_hasGroupedByCountry) return;
 
     _countryFeeds.clear();
 
     for (Feed feed in userFeeds) {
-      String countryCode = feed.countryCode.isNotEmpty ? feed.countryCode : "UNKNOWN";
+      String countryCode = feed.countryCode.isNotEmpty ? feed.countryCode : _unknownCountryCode;
 
       if (!_countryFeeds.containsKey(countryCode)) {
         _countryFeeds[countryCode] = [];
@@ -432,14 +390,10 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
       _countryFeeds[countryCode]!.add(feed);
     }
 
-    // 결과 확인
-    _countryFeeds.forEach((code, feeds) {
-      print("국가 코드: $code, 피드 수: ${feeds.length}");
-    });
-
     _hasGroupedByCountry = true;
   }
 
+  /// 지도에 피드 마커 추가
   Future<void> _addFeedMarkersToMap(List<Feed> feeds) async {
     if (feedAnnotationManager == null) {
       feedAnnotationManager = await mapboxMap.annotations.createPointAnnotationManager();
@@ -465,80 +419,27 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
         PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
           geometry: Point(coordinates: Position(feed.longitude, feed.latitude)),
           image: borderedImage,
-          iconSize: 1,
+          iconSize: _feedMarkerIconSize,
         );
 
         PointAnnotation marker = await feedAnnotationManager!.create(pointAnnotationOptions);
-        print("피드 마커 생성: ID=${marker.id}, 피드 ID=${feed.id}");
 
         feedMarkers.add(marker);
         feedMarkersMap[feed.id] = marker;
 
       } catch (e) {
-        print("[ERROR] 피드 마커 추가 오류 (${feed.id}): $e");
+        // 에러 처리
       }
     }
 
-    // 마커 생성 후 클릭 리스너 등록
     if (feedAnnotationManager != null) {
       feedAnnotationManager!.addOnPointAnnotationClickListener(UserPointClickListener(this));
     }
   }
 
-  Future<Uint8List> _addBorderToImage(Uint8List imageBytes) async {
-    final int size = 170;
-    final int photoSize = 150;
-    final double borderWidth = 7.0;
-
-    final ui.PictureRecorder recorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
-
-    final ui.Codec codec = await ui.instantiateImageCodec(imageBytes);
-    final ui.FrameInfo frameInfo = await codec.getNextFrame();
-
-    final double photoLeft = (size - photoSize) / 2;
-    final double photoTop = (size - photoSize) / 2;
-
-    final Paint borderPaint = Paint()
-      ..color = AppColors.primary
-      ..style = PaintingStyle.fill;
-
-    canvas.drawRRect(
-      RRect.fromRectAndRadius(
-        Rect.fromLTWH(photoLeft - borderWidth, photoTop - borderWidth,
-            photoSize + (borderWidth * 2), photoSize + (borderWidth * 2)),
-        Radius.circular(8),
-      ),
-      borderPaint,
-    );
-
-    double srcWidth = frameInfo.image.width.toDouble();
-    double srcHeight = frameInfo.image.height.toDouble();
-    double srcX = 0;
-    double srcY = 0;
-
-    if (srcWidth > srcHeight) {
-      srcX = (srcWidth - srcHeight) / 2;
-      srcWidth = srcHeight;
-    } else if (srcHeight > srcWidth) {
-      srcY = (srcHeight - srcWidth) / 2;
-      srcHeight = srcWidth;
-    }
-
-    final Rect srcRect = Rect.fromLTWH(srcX, srcY, srcWidth, srcHeight);
-    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, photoSize.toDouble(), photoSize.toDouble());
-
-    canvas.drawImageRect(frameInfo.image, srcRect, destRect, Paint());
-
-    final ui.Image image = await recorder.endRecording().toImage(size, size);
-    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-
-    return byteData!.buffer.asUint8List();
-  }
-
+  /// 국가별 피드 마커 추가
   Future<void> _addCountryFeedMarkers() async {
     if (_countryFeeds.isEmpty) {
-      print("️[ERROR] 표시할 국가별 피드가 없습니다.");
       return;
     }
 
@@ -553,7 +454,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     _countryMarkerMap.clear();
 
     for (String countryCode in _countryFeeds.keys) {
-      if (countryCode == "UNKNOWN" || countryCode.isEmpty) continue;
+      if (countryCode == _unknownCountryCode || countryCode.isEmpty) continue;
 
       List<Feed> feedsInCountry = _countryFeeds[countryCode]!;
       if (feedsInCountry.isEmpty) continue;
@@ -574,32 +475,33 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
       try {
         Uint8List? flagImage;
 
-        String flagUrl = "https://flagcdn.com/w320/${countryCode.toLowerCase()}.png";
+        String flagUrl = "$_flagUrlPrefix${countryCode.toLowerCase()}$_flagUrlSuffix";
         flagImage = await _downloadImage(flagUrl);
 
         if (flagImage == null) {
-          flagUrl = "https://flagcdn.com/${countryCode.toLowerCase()}.png";
+          flagUrl = "$_flagUrlAlternativePrefix${countryCode.toLowerCase()}$_flagUrlSuffix";
           flagImage = await _downloadImage(flagUrl);
         }
 
         if (flagImage == null) {
-          ByteData data = await rootBundle.load('assets/icons/default_flag.png');
+          ByteData data = await rootBundle.load(_defaultFlagIconPath);
           flagImage = data.buffer.asUint8List();
         }
 
         PointAnnotationOptions pointAnnotationOptions = PointAnnotationOptions(
           geometry: Point(coordinates: Position(feedLon, feedLat)),
           image: flagImage,
-          iconSize: 0.3,
+          iconSize: _countryMarkerIconSize,
         );
 
         PointAnnotation marker = await countryFeedAnnotationManager!.create(pointAnnotationOptions);
         countryFeedMarkers.add(marker);
         _countryMarkerMap[countryCode] = marker;
       } catch (e) {
-        print("[ERROR] 국가 ${countryCode} 마커 추가 실패: $e");
+        // 에러 처리
       }
     }
+
     if (countryFeedAnnotationManager != null) {
       countryFeedAnnotationManager!.addOnPointAnnotationClickListener(
           CountryPointClickListener(this)
@@ -607,15 +509,16 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     }
   }
 
+  /// 줌 체크 타이머 시작
   void _startZoomCheckTimer() {
     _zoomCheckTimer?.cancel();
-    _zoomCheckTimer = Timer.periodic(Duration(milliseconds: 500), (timer) {
+    _zoomCheckTimer = Timer.periodic(Duration(milliseconds: _zoomCheckTimerInterval), (timer) {
       if (isMapInitialized && mounted) {
         mapboxMap.getCameraState().then((cameraState) {
           if (currentZoomLevel != cameraState.zoom) {
             setState(() {
               currentZoomLevel = cameraState.zoom;
-              _updateVisibility();
+              _handleUpdateVisibility();
             });
           }
         });
@@ -623,21 +526,22 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     });
   }
 
-  void _updateVisibility() async {
+  /// 가시성 업데이트 처리
+  void _handleUpdateVisibility() async {
     if (!isMapInitialized) return;
 
     if (_isLocationSharing) {
-      _updateUserLocationMarker();
+      _handleUpdateUserLocationMarker();
     }
 
-    if (currentZoomLevel > 4.0) {
+    if (currentZoomLevel > _zoomThreshold) {
       if (countryFeedAnnotationManager != null) {
         for (var marker in List.from(countryFeedMarkers)) {
           try {
             await countryFeedAnnotationManager!.delete(marker);
             countryFeedMarkers.remove(marker);
           } catch (e) {
-            print("[ERROR] 국가 피드 마커 삭제 오류: $e");
+            // 에러 처리
           }
         }
       }
@@ -652,7 +556,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
             await feedAnnotationManager!.delete(marker);
             feedMarkers.remove(marker);
           } catch (e) {
-            print("[ERROR] 피드 마커 삭제 오류: $e");
+            // 에러 처리
           }
         }
       }
@@ -663,13 +567,14 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
     }
   }
 
+  /// 국가 중심 좌표 가져오기
   Future<Map<String, double>?> _getCountryCenter(String countryCode) async {
     try {
       if (_countryCenterCache.containsKey(countryCode)) {
         return _countryCenterCache[countryCode];
       }
 
-      String url = "https://api.mapbox.com/geocoding/v5/mapbox.places/${countryCode}.json?types=country&access_token=$accessToken";
+      String url = "$_mapboxGeocodingBaseUrl${countryCode}.json$_countryTypeParam$accessToken";
       final response = await http.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
@@ -687,34 +592,165 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
         }
       }
     } catch (e) {
-      print("[ERROR] 국가 중심 좌표 검색 오류: $e");
+      // 에러 처리
     }
     return null;
   }
 
+  /// 이미지 다운로드
   Future<Uint8List?> _downloadImage(String url) async {
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         return response.bodyBytes;
-      } else {
-        print("[ERROR] 다운로드 실패 - 상태 코드: ${response.statusCode}");
       }
     } catch (e) {
-      print("[ERROR] 이미지 다운로드 오류: $e");
+      // 에러 처리
     }
     return null;
   }
 
+  /// 시간 기반 스타일 가져오기
   String _getTimeBasedStyle() {
     final now = DateTime.now();
     final hour = now.hour;
 
     if (hour >= 6 && hour < 18) {
-      return MapboxStyles.MAPBOX_STREETS; // 낮 시간 스타일
+      return MapboxStyles.MAPBOX_STREETS;
     } else {
-      return MapboxStyles.MAPBOX_STREETS; // 밤 시간 스타일
+      return MapboxStyles.MAPBOX_STREETS;
     }
+  }
+
+  /// 프로필 이미지를 원형으로 처리
+  Future<Uint8List> _addCircleBorderToImage(Uint8List imageBytes) async {
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, _userLocationImageSize.toDouble(), _userLocationImageSize.toDouble()));
+
+    final ui.Codec codec = await ui.instantiateImageCodec(imageBytes);
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+
+    final double photoLeft = (_userLocationImageSize - _userLocationPhotoSize) / 2;
+    final double photoTop = (_userLocationImageSize - _userLocationPhotoSize) / 2;
+
+    final Paint borderPaint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(
+      Offset(_userLocationImageSize / 2, _userLocationImageSize / 2),
+      _userLocationPhotoSize / 2 + _userLocationBorderWidth,
+      borderPaint,
+    );
+
+    final Path clipPath = Path()
+      ..addOval(Rect.fromLTWH(photoLeft, photoTop, _userLocationPhotoSize.toDouble(), _userLocationPhotoSize.toDouble()));
+
+    canvas.clipPath(clipPath);
+
+    double srcWidth = frameInfo.image.width.toDouble();
+    double srcHeight = frameInfo.image.height.toDouble();
+    double srcX = 0;
+    double srcY = 0;
+
+    if (srcWidth > srcHeight) {
+      srcX = (srcWidth - srcHeight) / 2;
+      srcWidth = srcHeight;
+    } else if (srcHeight > srcWidth) {
+      srcY = (srcHeight - srcWidth) / 2;
+      srcHeight = srcWidth;
+    }
+
+    final Rect srcRect = Rect.fromLTWH(srcX, srcY, srcWidth, srcHeight);
+    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, _userLocationPhotoSize.toDouble(), _userLocationPhotoSize.toDouble());
+
+    canvas.drawImageRect(frameInfo.image, srcRect, destRect, Paint());
+
+    final ui.Image image = await recorder.endRecording().toImage(_userLocationImageSize, _userLocationImageSize);
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    return byteData!.buffer.asUint8List();
+  }
+
+  /// 이미지에 테두리 추가
+  Future<Uint8List> _addBorderToImage(Uint8List imageBytes) async {
+    final ui.PictureRecorder recorder = ui.PictureRecorder();
+    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, _feedMarkerImageSize.toDouble(), _feedMarkerImageSize.toDouble()));
+
+    final ui.Codec codec = await ui.instantiateImageCodec(imageBytes);
+    final ui.FrameInfo frameInfo = await codec.getNextFrame();
+
+    final double photoLeft = (_feedMarkerImageSize - _feedMarkerPhotoSize) / 2;
+    final double photoTop = (_feedMarkerImageSize - _feedMarkerPhotoSize) / 2;
+
+    final Paint borderPaint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.fill;
+
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(photoLeft - _feedMarkerBorderWidth, photoTop - _feedMarkerBorderWidth,
+            _feedMarkerPhotoSize + (_feedMarkerBorderWidth * 2), _feedMarkerPhotoSize + (_feedMarkerBorderWidth * 2)),
+        Radius.circular(_borderRadius),
+      ),
+      borderPaint,
+    );
+
+    double srcWidth = frameInfo.image.width.toDouble();
+    double srcHeight = frameInfo.image.height.toDouble();
+    double srcX = 0;
+    double srcY = 0;
+
+    if (srcWidth > srcHeight) {
+      srcX = (srcWidth - srcHeight) / 2;
+      srcWidth = srcHeight;
+    } else if (srcHeight > srcWidth) {
+      srcY = (srcHeight - srcWidth) / 2;
+      srcHeight = srcWidth;
+    }
+
+    final Rect srcRect = Rect.fromLTWH(srcX, srcY, srcWidth, srcHeight);
+    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, _feedMarkerPhotoSize.toDouble(), _feedMarkerPhotoSize.toDouble());
+
+    canvas.drawImageRect(frameInfo.image, srcRect, destRect, Paint());
+
+    final ui.Image image = await recorder.endRecording().toImage(_feedMarkerImageSize, _feedMarkerImageSize);
+    final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+
+    return byteData!.buffer.asUint8List();
+  }
+
+  /// 로딩 인디케이터 위젯 생성
+  Widget _buildLoadingIndicator() {
+    return Positioned(
+      top: _mapTopPosition,
+      right: _mapRightPosition,
+      child: Container(
+        padding: EdgeInsets.all(_loadingContainerPadding),
+        decoration: BoxDecoration(
+          color: Colors.black54,
+          borderRadius: BorderRadius.circular(_circularBorderRadius),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              width: _loadingIndicatorSize,
+              height: _loadingIndicatorSize,
+              child: CircularProgressIndicator(
+                strokeWidth: _loadingIndicatorStrokeWidth,
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              ),
+            ),
+            SizedBox(width: _loadingSpacing),
+            Text(
+              _loadingFeedsText,
+              style: TextStyle(color: Colors.white, fontSize: _loadingTextFontSize),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -731,7 +767,7 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
           styleUri: _getTimeBasedStyle(),
           cameraOptions: CameraOptions(
             center: Point(coordinates: Position(0, 20)),
-            zoom: 2,
+            zoom: _initialZoomLevel,
           ),
           onMapCreated: (MapboxMap mapbox) {
             mapboxMap = mapbox;
@@ -763,49 +799,20 @@ class UserMapContentWidgetState extends State<UserMapContentWidget> with Automat
 
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (userFeeds.isNotEmpty && !_hasGroupedByCountry) {
-                _groupFeedsByCountry();
+                _handleGroupFeedsByCountry();
               }
 
-              if (currentZoomLevel > 4.0) {
+              if (currentZoomLevel > _zoomThreshold) {
                 _addFeedMarkersToMap(userFeeds);
               } else {
                 _addCountryFeedMarkers();
               }
 
-              _checkUserLocationSharing();
+              _handleCheckUserLocationSharing();
             });
           },
         ),
-        if (_isLoadingFeeds)
-          Positioned(
-            top: 20,
-            right: 20,
-            child: Container(
-              padding: EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  Text(
-                    "Loading feeds...",
-                    style: TextStyle(color: Colors.white, fontSize: 12),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        if (_isLoadingFeeds) _buildLoadingIndicator(),
       ],
     );
   }

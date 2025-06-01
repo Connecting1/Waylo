@@ -18,15 +18,55 @@ class SignUpStartPage extends StatefulWidget {
 }
 
 class _SignUpStartPageState extends State<SignUpStartPage> {
+  // 텍스트 상수들
+  static const String _mainTitle = 'Enjoy Your Trip\nAnd Write It Down';
+  static const String _signUpButtonText = 'Sign up for free';
+  static const String _googleButtonText = 'Continue with Google';
+  static const String _loginButtonText = 'Log in';
+
+  // Provider 타입 상수들
+  static const String _providerLocal = "local";
+  static const String _providerGoogle = "google";
+
+  // API 키 상수들
+  static const String _emailKey = 'email';
+  static const String _errorKey = 'error';
+  static const String _authTokenKey = 'auth_token';
+  static const String _userIdKey = 'user_id';
+  static const String _isLoggedInKey = 'is_logged_in';
+
+  // Google Sign In 스코프 상수들
+  static const List<String> _googleSignInScopes = ['email'];
+
+  // 이미지 경로 상수들
+  static const String _logoPath = 'assets/logos/logo2.png';
+  static const String _googleLogoPath = 'assets/logos/google_logo.png';
+
+  // 폰트 크기 상수들
+  static const double _mainTitleFontSize = 35;
+  static const double _buttonFontSize = 18;
+  static const double _loginTextFontSize = 15;
+
+  // 크기 상수들
+  static const double _logoTopRatio = 0.2;
+  static const double _titleTopRatio = 0.45;
+  static const double _logoSize = 150;
+  static const double _bottomButtonsPosition = 100;
+  static const double _buttonSpacing = 15;
+  static const double _googleLogoSize = 24;
+
+  // 스타일 상수들
+  static const double _letterSpacing = 1.0;
+
   final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email'],
+    scopes: _googleSignInScopes,
   );
 
   GoogleSignInAccount? _currentUser;
 
   /// 일반 회원가입 페이지로 이동
   Future<void> _handleSignIn(BuildContext context) async {
-    Provider.of<SignUpProvider>(context, listen: false).setProvider("local");
+    Provider.of<SignUpProvider>(context, listen: false).setProvider(_providerLocal);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SignUpEmailPage()),
@@ -56,7 +96,7 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
         bool userExists = false;
 
         if (searchResponse is List) {
-          userExists = searchResponse.any((u) => u['email'] == _currentUser!.email);
+          userExists = searchResponse.any((u) => u[_emailKey] == _currentUser!.email);
         }
 
         if (userExists) {
@@ -74,11 +114,11 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
   Future<void> _handleExistingGoogleUser() async {
     final loginResponse = await UserApi.loginUser(_currentUser!.email, "");
 
-    if (!loginResponse.containsKey('error')) {
+    if (!loginResponse.containsKey(_errorKey)) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('auth_token', loginResponse['auth_token']);
-      await prefs.setString('user_id', loginResponse['user_id']);
-      await prefs.setBool('is_logged_in', true);
+      await prefs.setString(_authTokenKey, loginResponse[_authTokenKey]);
+      await prefs.setString(_userIdKey, loginResponse[_userIdKey]);
+      await prefs.setBool(_isLoggedInKey, true);
 
       Navigator.pushReplacement(
         context,
@@ -90,7 +130,7 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
   /// 신규 구글 사용자 회원가입 처리
   Future<void> _handleNewGoogleUser() async {
     Provider.of<SignUpProvider>(context, listen: false).setEmail(_currentUser!.email);
-    Provider.of<SignUpProvider>(context, listen: false).setProvider("google");
+    Provider.of<SignUpProvider>(context, listen: false).setProvider(_providerGoogle);
     Provider.of<SignUpProvider>(context, listen: false).setPassword(null);
 
     Navigator.push(
@@ -114,32 +154,32 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
       body: Stack(
         children: [
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.2,
+            top: MediaQuery.of(context).size.height * _logoTopRatio,
             left: 0,
             right: 0,
             child: Image.asset(
-              'assets/logos/logo2.png',
-              width: 150,
-              height: 150,
+              _logoPath,
+              width: _logoSize,
+              height: _logoSize,
             ),
           ),
           Positioned(
-            top: MediaQuery.of(context).size.height * 0.45,
+            top: MediaQuery.of(context).size.height * _titleTopRatio,
             left: 0,
             right: 0,
             child: Text(
-              'Enjoy Your Trip\nAnd Write It Down',
+              _mainTitle,
               style: TextStyle(
-                fontSize: 35,
+                fontSize: _mainTitleFontSize,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
-                letterSpacing: 1.0,
+                letterSpacing: _letterSpacing,
               ),
               textAlign: TextAlign.center,
             ),
           ),
           Positioned(
-            bottom: 100,
+            bottom: _bottomButtonsPosition,
             left: 0,
             right: 0,
             child: Column(
@@ -149,12 +189,15 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
                 ElevatedButton.icon(
                   onPressed: () => _handleSignIn(context),
                   label: const Text(
-                    'Sign up for free',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    _signUpButtonText,
+                    style: TextStyle(
+                      fontSize: _buttonFontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   style: ButtonStyles.loginButtonStyle(context),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: _buttonSpacing),
                 ElevatedButton(
                   onPressed: _handleGoogleSignIn,
                   style: ButtonStyles.loginButtonStyle(context),
@@ -165,29 +208,36 @@ class _SignUpStartPageState extends State<SignUpStartPage> {
                         mainAxisSize: MainAxisSize.max,
                         children: [
                           SizedBox(
-                            width: 24,
-                            height: 24,
+                            width: _googleLogoSize,
+                            height: _googleLogoSize,
                             child: Image.asset(
-                              'assets/logos/google_logo.png',
+                              _googleLogoPath,
                               fit: BoxFit.cover,
                             ),
                           ),
                         ],
                       ),
                       const Text(
-                        'Continue with Google',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        _googleButtonText,
+                        style: TextStyle(
+                          fontSize: _buttonFontSize,
+                          fontWeight: FontWeight.bold,
+                        ),
                         textAlign: TextAlign.center,
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 15),
+                const SizedBox(height: _buttonSpacing),
                 GestureDetector(
                   onTap: () => _handleLogIn(context),
                   child: Text(
-                    'Log in',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
+                    _loginButtonText,
+                    style: TextStyle(
+                      fontSize: _loginTextFontSize,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],

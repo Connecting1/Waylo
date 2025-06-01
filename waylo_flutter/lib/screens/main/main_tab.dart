@@ -16,12 +16,25 @@ class MainTabPage extends StatefulWidget {
 }
 
 class _MainTabPageState extends State<MainTabPage> with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+  // 탭 관련 상수들
+  static const int _tabCount = 5;
+
+  // 탭 아이콘 상수들
+  static const IconData _myPageIcon = Icons.person_pin_circle;
+  static const IconData _sharedMapIcon = Icons.public;
+  static const IconData _searchIcon = Icons.search;
+  static const IconData _chatIcon = Icons.forum;
+  static const IconData _settingsIcon = Icons.settings;
+
+  // 물리 효과 상수
+  static const ScrollPhysics _tabBarPhysics = NeverScrollableScrollPhysics();
+
   TabController? controller;
 
   @override
   void initState() {
     super.initState();
-    controller = TabController(length: 5, vsync: this);
+    controller = TabController(length: _tabCount, vsync: this);
     WidgetsBinding.instance.addObserver(this);
   }
 
@@ -65,7 +78,7 @@ class _MainTabPageState extends State<MainTabPage> with SingleTickerProviderStat
   /// 탭 화면들 구성
   Widget _buildTabBarView() {
     return TabBarView(
-      physics: NeverScrollableScrollPhysics(),
+      physics: _tabBarPhysics,
       controller: controller,
       children: <Widget>[
         MyPageScreenPage(),
@@ -86,12 +99,12 @@ class _MainTabPageState extends State<MainTabPage> with SingleTickerProviderStat
         labelColor: AppColors.primary,
         unselectedLabelColor: themeProvider.isDarkMode ? Colors.grey[400] : Colors.grey,
         indicatorColor: AppColors.primary,
-        tabs: <Tab>[
-          Tab(icon: Icon(Icons.person_pin_circle)),
-          Tab(icon: Icon(Icons.public)),
-          Tab(icon: Icon(Icons.search)),
-          Tab(icon: Icon(Icons.forum)),
-          Tab(icon: Icon(Icons.settings)),
+        tabs: const <Tab>[
+          Tab(icon: Icon(_myPageIcon)),
+          Tab(icon: Icon(_sharedMapIcon)),
+          Tab(icon: Icon(_searchIcon)),
+          Tab(icon: Icon(_chatIcon)),
+          Tab(icon: Icon(_settingsIcon)),
         ],
       ),
     );

@@ -26,6 +26,53 @@ class SettingScreenPage extends StatefulWidget {
 }
 
 class _SettingScreenPageState extends State<SettingScreenPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Settings";
+  static const String _accountSettingsTitle = "Account Settings";
+  static const String _notificationSettingsTitle = "Notification Settings";
+  static const String _appSettingsTitle = "App Settings";
+  static const String _supportSettingsTitle = "Support & Information";
+  static const String _changeProfilePictureTitle = "Change Profile Picture";
+  static const String _changeUsernameTitle = "Change Username";
+  static const String _accountPrivacyTitle = "Account Privacy";
+  static const String _locationSharingTitle = "Location Sharing";
+  static const String _locationSharingSubtitle = "Manage location visibility settings";
+  static const String _languageTitle = "Language";
+  static const String _languageSubtitle = "English";
+  static const String _themeTitle = "Theme";
+  static const String _helpTitle = "Help";
+  static const String _privacyPolicyTitle = "Privacy Policy";
+  static const String _appVersionTitle = "App Version";
+  static const String _appVersionSubtitle = "v1.0.0";
+  static const String _logoutTitle = "Logout";
+  static const String _logoutConfirmTitle = "Logout";
+  static const String _logoutConfirmContent = "Are you sure you want to logout?";
+  static const String _cancelButtonText = "Cancel";
+  static const String _publicAccountText = "Public Account";
+  static const String _privateAccountText = "Private Account";
+  static const String _systemThemePrefix = "System (";
+  static const String _systemThemeSuffix = ")";
+  static const String _darkModeText = "Dark Mode";
+  static const String _lightModeText = "Light Mode";
+
+  // 에러 메시지 상수들
+  static const String _logoutErrorMessage = "An error occurred during logout.";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 16;
+  static const double _sectionHeaderFontSize = 16;
+  static const double _logoutButtonFontSize = 16;
+
+  // 크기 상수들
+  static const double _sectionHeaderPaddingHorizontal = 16;
+  static const double _sectionHeaderPaddingTop = 16;
+  static const double _sectionHeaderPaddingBottom = 8;
+  static const double _logoutButtonVerticalPadding = 20.0;
+  static const double _bottomSpacing = 20;
+
+  // 계정 관련 상수들
+  static const String _publicVisibility = 'public';
+
   bool _isLoading = false;
 
   @override
@@ -44,8 +91,12 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
           ? AppColors.darkSurface
           : AppColors.primary,
       title: const Text(
-        "Settings",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        _appBarTitle,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: _appBarTitleFontSize,
+        ),
       ),
       centerTitle: true,
     );
@@ -53,7 +104,7 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
 
   /// 로딩 상태 위젯
   Widget _buildLoadingState() {
-    return Center(child: CircularProgressIndicator());
+    return const Center(child: CircularProgressIndicator());
   }
 
   /// 설정 목록 구성
@@ -65,7 +116,7 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
         ..._buildAppSettings(),
         ..._buildSupportSettings(),
         _buildLogoutButton(),
-        SizedBox(height: 20),
+        const SizedBox(height: _bottomSpacing),
       ],
     );
   }
@@ -73,20 +124,20 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   /// 계정 설정 섹션
   List<Widget> _buildAccountSettings() {
     return [
-      _buildSectionHeader("Account Settings"),
+      _buildSectionHeader(_accountSettingsTitle),
       _buildSettingItem(
         icon: Icons.camera_alt,
-        title: "Change Profile Picture",
+        title: _changeProfilePictureTitle,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ProfilePictureScreen())),
       ),
       _buildSettingItem(
         icon: Icons.person,
-        title: "Change Username",
+        title: _changeUsernameTitle,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => UsernameEditScreen())),
       ),
       _buildSettingItem(
         icon: Icons.lock_outline,
-        title: "Account Privacy",
+        title: _accountPrivacyTitle,
         subtitle: _getPrivacySubtitle(),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AccountPrivacyScreen())),
       ),
@@ -96,11 +147,11 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   /// 알림 설정 섹션
   List<Widget> _buildNotificationSettings() {
     return [
-      _buildSectionHeader("Notification Settings"),
+      _buildSectionHeader(_notificationSettingsTitle),
       _buildSettingItem(
         icon: Icons.location_on,
-        title: "Location Sharing",
-        subtitle: "Manage location visibility settings",
+        title: _locationSharingTitle,
+        subtitle: _locationSharingSubtitle,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => LocationSettingsScreen())),
       ),
     ];
@@ -109,18 +160,18 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   /// 앱 설정 섹션
   List<Widget> _buildAppSettings() {
     return [
-      _buildSectionHeader("App Settings"),
+      _buildSectionHeader(_appSettingsTitle),
       _buildSettingItem(
         icon: Icons.language,
-        title: "Language",
-        subtitle: "English",
+        title: _languageTitle,
+        subtitle: _languageSubtitle,
         onTap: () {
           // 언어 설정 기능 추후 구현
         },
       ),
       _buildSettingItem(
         icon: Icons.dark_mode,
-        title: "Theme",
+        title: _themeTitle,
         subtitle: _getThemeSubtitle(),
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => ThemeSettingsScreen())),
       ),
@@ -130,21 +181,21 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   /// 지원 및 정보 섹션
   List<Widget> _buildSupportSettings() {
     return [
-      _buildSectionHeader("Support & Information"),
+      _buildSectionHeader(_supportSettingsTitle),
       _buildSettingItem(
         icon: Icons.help_outline,
-        title: "Help",
+        title: _helpTitle,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HelpScreen())),
       ),
       _buildSettingItem(
         icon: Icons.privacy_tip_outlined,
-        title: "Privacy Policy",
+        title: _privacyPolicyTitle,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyScreen())),
       ),
       _buildSettingItem(
         icon: Icons.info_outline,
-        title: "App Version",
-        subtitle: "v1.0.0",
+        title: _appVersionTitle,
+        subtitle: _appVersionSubtitle,
         onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AppVersionScreen())),
       ),
     ];
@@ -154,14 +205,14 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   Widget _buildLogoutButton() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20.0),
+        padding: const EdgeInsets.symmetric(vertical: _logoutButtonVerticalPadding),
         child: GestureDetector(
           onTap: _showLogoutConfirmDialog,
-          child: Text(
-            "Logout",
+          child: const Text(
+            _logoutTitle,
             style: TextStyle(
               color: Colors.red,
-              fontSize: 16,
+              fontSize: _logoutButtonFontSize,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -173,12 +224,17 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   /// 섹션 헤더 위젯
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+      padding: const EdgeInsets.fromLTRB(
+        _sectionHeaderPaddingHorizontal,
+        _sectionHeaderPaddingTop,
+        _sectionHeaderPaddingHorizontal,
+        _sectionHeaderPaddingBottom,
+      ),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           color: AppColors.primary,
-          fontSize: 16,
+          fontSize: _sectionHeaderFontSize,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -196,7 +252,7 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
       leading: Icon(icon, color: Colors.grey[700]),
       title: Text(title),
       subtitle: subtitle != null ? Text(subtitle) : null,
-      trailing: Icon(Icons.chevron_right),
+      trailing: const Icon(Icons.chevron_right),
       onTap: onTap,
     );
   }
@@ -204,18 +260,18 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
   /// 개인정보 보호 설정 부제목 가져오기
   String _getPrivacySubtitle() {
     final userProvider = Provider.of<UserProvider>(context);
-    return userProvider.accountVisibility == 'public'
-        ? "Public Account"
-        : "Private Account";
+    return userProvider.accountVisibility == _publicVisibility
+        ? _publicAccountText
+        : _privateAccountText;
   }
 
   /// 테마 설정 부제목 가져오기
   String _getThemeSubtitle() {
     final themeProvider = Provider.of<ThemeProvider>(context);
     if (themeProvider.useSystemTheme) {
-      return "System (${themeProvider.isDarkMode ? 'Dark Mode' : 'Light Mode'})";
+      return "$_systemThemePrefix${themeProvider.isDarkMode ? _darkModeText : _lightModeText}$_systemThemeSuffix";
     }
-    return themeProvider.isDarkMode ? "Dark Mode" : "Light Mode";
+    return themeProvider.isDarkMode ? _darkModeText : _lightModeText;
   }
 
   /// 로그아웃 확인 다이얼로그 표시
@@ -223,19 +279,19 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Logout"),
-        content: Text("Are you sure you want to logout?"),
+        title: const Text(_logoutConfirmTitle),
+        content: const Text(_logoutConfirmContent),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("Cancel"),
+            child: const Text(_cancelButtonText),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(context);
               _handleLogout();
             },
-            child: Text("Logout", style: TextStyle(color: Colors.red)),
+            child: const Text(_logoutTitle, style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -267,7 +323,7 @@ class _SettingScreenPageState extends State<SettingScreenPage> {
         _isLoading = false;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred during logout.")),
+        const SnackBar(content: Text(_logoutErrorMessage)),
       );
     }
   }

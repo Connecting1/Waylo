@@ -1,4 +1,3 @@
-// lib/screens/profile/my_album_content.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -11,7 +10,7 @@ import 'package:waylo_flutter/providers/widget_provider.dart';
 import 'package:waylo_flutter/widgets/draggable_widget.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/profile_image_widget.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/checklist_widget.dart';
-import 'package:waylo_flutter/widgets/custom_widgets/textbox_widget.dart'; // TextBoxWidget import 추가
+import 'package:waylo_flutter/widgets/custom_widgets/textbox_widget.dart';
 import 'package:waylo_flutter/models/album_widget.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
@@ -25,22 +24,85 @@ class AlbumContentWidget extends StatefulWidget {
 }
 
 class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKeepAliveClientMixin {
+  // 텍스트 상수들
+  static const String _settingsAddWidgetTitle = "Settings & Add Widget";
+  static const String _addChecklistText = "Add Checklist";
+  static const String _addTextBoxText = "Add Text Box";
+  static const String _addProfileImageText = "Add Profile Image";
+  static const String _profileImageOptionsTitle = "Profile Image Options";
+  static const String _useCurrentProfileText = "Use Current Profile Image";
+  static const String _uploadNewImageText = "Upload New Image";
+  static const String _editWidgetTitle = "Edit Widget";
+  static const String _changeShapeText = "Change Shape";
+  static const String _addNewItemText = "Add New Item";
+  static const String _deleteWidgetText = "Delete Widget";
+  static const String _addItemTitle = "Add Item";
+  static const String _newItemHint = "New item";
+  static const String _cancelText = "Cancel";
+  static const String _addText = "Add";
+
+  // 에러 및 성공 메시지 상수들
+  static const String _dataLoadErrorMessage = "An error occurred while loading data.";
+  static const String _checklistAddedMessage = "Checklist widget added";
+  static const String _checklistFailedMessage = "Failed to add checklist widget";
+  static const String _noProfileImageMessage = "No profile image available. Please upload an image first.";
+  static const String _profileImageAddedMessage = "Profile image added";
+  static const String _profileImageFailedMessage = "Failed to add profile image";
+  static const String _uploadingImageMessage = "Uploading image...";
+  static const String _userIdNotFoundMessage = "User ID not found. Please login again.";
+  static const String _profileImageUpdateFailedMessage = "Failed to update profile image: ";
+  static const String _profileImageUpdatedAndAddedMessage = "Profile image updated and added to album";
+  static const String _profileImageUpdatedButFailedMessage = "Profile image updated but failed to add to album";
+  static const String _profileImageUpdatedButEmptyMessage = "Profile image updated but URL is empty";
+  static const String _imageUploadErrorMessage = "Error selecting/uploading image: ";
+  static const String _textBoxAddedMessage = "Text Box widget added";
+  static const String _textBoxFailedMessage = "Failed to add text box widget";
+
+  // API 키 상수들
+  static const String _errorKey = "error";
+
+  // 위젯 타입 상수들
+  static const String _profileImageType = "profile_image";
+  static const String _checklistType = "checklist";
+  static const String _textBoxType = "text_box";
+
+  // 모양 타입 상수들
+  static const String _circleShape = "circle";
+  static const String _rectangleShape = "rectangle";
+  static const String _shapeKey = "shape";
+
+  // 폰트 크기 상수들
+  static const double _titleFontSize = 18;
+
+  // 크기 상수들
+  static const double _containerPadding = 16;
+  static const double _titleSpacing = 10;
+  static const double _sectionSpacing = 16;
+
+  // 바텀 시트 상수들
+  static const double _initialChildSize = 0.4;
+  static const double _minChildSize = 0.2;
+  static const double _maxChildSize = 0.9;
+
+  // 패턴 상수들
+  static const String _nonePattern = "none";
+  static const String _patternsAssetPath = "assets/patterns/";
+  static const String _patternFileExtension = ".png";
+
   bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _checkAndLoadData();
+    _handleInitialDataLoad();
   }
 
-  // 데이터가 로드되었는지 확인하고 필요한 경우에만 로드
-  Future<void> _checkAndLoadData() async {
-    // 이미 초기화되었다면 아무것도 하지 않음
+  /// 초기 데이터 로드 처리
+  Future<void> _handleInitialDataLoad() async {
     if (DataLoadingManager.isInitialized()) {
       return;
     }
 
-    // 아직 초기화되지 않았다면 로딩 표시 후 데이터 로드
     setState(() {
       _isLoading = true;
     });
@@ -48,13 +110,8 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
     try {
       await DataLoadingManager.initializeAppData(context);
     } catch (e) {
-      print("[ERROR] AlbumContentWidget: 데이터 로드 중 오류 발생: $e");
-
-      // 오류 메시지 표시
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("An error occurred while loading data."))
-        );
+        _handleShowErrorMessage(_dataLoadErrorMessage);
       }
     } finally {
       if (mounted) {
@@ -65,7 +122,7 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
     }
   }
 
-  // 상위 컴포넌트에서 호출할 수 있도록 public 메서드로 변경
+  /// 위젯 선택 모달 표시
   void openWidgetSelection() {
     showModalBottomSheet(
       context: context,
@@ -73,51 +130,22 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
       builder: (BuildContext context) {
         return DraggableScrollableSheet(
           expand: false,
-          initialChildSize: 0.4,
-          minChildSize: 0.2,
-          maxChildSize: 0.9,
+          initialChildSize: _initialChildSize,
+          minChildSize: _minChildSize,
+          maxChildSize: _maxChildSize,
           builder: (context, scrollController) {
             return Container(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(_containerPadding),
               child: ListView(
                 controller: scrollController,
                 children: [
-                  Text("Settings & Add Widget", style: TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold)),
-                  SizedBox(height: 10),
-                  Consumer<CanvasProvider>(
-                    builder: (context, canvasProvider, child) {
-                      return CanvasSettings(
-                        initialColor: canvasProvider.canvasColor,
-                        initialPattern: canvasProvider.canvasPattern,
-                        onSettingsChanged: (color, pattern) {
-                          canvasProvider.updateCanvasSettings(color, pattern);
-                        },
-                      );
-                    },
-                  ),
-                  Divider(),
-                  _buildAddProfileImageWidget(),
-                  // 체크리스트 위젯 추가 옵션
-                  ListTile(
-                    leading: Icon(Icons.checklist),
-                    title: Text("Add Checklist"),
-                    onTap: () {
-                      // 바텀 시트 닫기
-                      Navigator.pop(context);
-
-                      // 체크리스트 위젯 추가
-                      _addChecklistWidget();
-                    },
-                  ),
-                  ListTile(
-                      leading: Icon(Icons.text_fields),
-                      title: Text("Add Text Box"),
-                      onTap: () {
-                        Navigator.pop(context);
-                        _addTextBoxWidget();
-                      }
-                  ),
+                  _buildModalTitle(_settingsAddWidgetTitle),
+                  const SizedBox(height: _titleSpacing),
+                  _buildCanvasSettings(),
+                  const Divider(),
+                  _buildAddProfileImageOption(),
+                  _buildAddChecklistOption(),
+                  _buildAddTextBoxOption(),
                 ],
               ),
             );
@@ -127,234 +155,119 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
     );
   }
 
-  // 체크리스트 위젯 추가 메서드
-  void _addChecklistWidget() async {
+  /// 체크리스트 위젯 추가 처리
+  Future<void> _handleAddChecklistWidget() async {
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
-
-    AlbumWidget? widget = await widgetProvider.addChecklistWidget();
+    final AlbumWidget? widget = await widgetProvider.addChecklistWidget();
 
     if (widget != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Checklist widget added"))
-      );
+      _handleShowSuccessMessage(_checklistAddedMessage);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to add checklist widget"))
-      );
+      _handleShowErrorMessage(_checklistFailedMessage);
     }
   }
 
-  // 프로필 이미지 위젯 추가 옵션
-  Widget _buildAddProfileImageWidget() {
-    final userProvider = Provider.of<UserProvider>(context, listen: false);
+  /// 텍스트박스 위젯 추가 처리
+  Future<void> _handleAddTextBoxWidget() async {
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
+    final AlbumWidget? widget = await widgetProvider.addTextBoxWidget();
 
-    return ListTile(
-      leading: Icon(Icons.account_circle),
-      title: Text("Add Profile Image"),
-      onTap: () {
-        // 바텀 시트를 닫고 새 바텀 시트 표시
-        Navigator.pop(context);
-
-        // 프로필 이미지 옵션 표시
-        showModalBottomSheet(
-          context: context,
-          builder: (BuildContext context) {
-            return Container(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                      "Profile Image Options",
-                      style: TextStyle(
-                          fontSize: 18, fontWeight: FontWeight.bold)
-                  ),
-                  SizedBox(height: 16),
-                  ListTile(
-                    leading: Icon(Icons.photo_library),
-                    title: Text("Use Current Profile Image"),
-                    onTap: () async {
-                      // 현재 프로필 이미지 사용
-                      String profileImageUrl = userProvider.profileImage;
-
-                      if (profileImageUrl.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text(
-                              "No profile image available. Please upload an image first.")),
-                        );
-                        Navigator.pop(context);
-                        return;
-                      }
-
-                      // 위젯 추가
-                      AlbumWidget? widget = await widgetProvider
-                          .addProfileWidget(profileImageUrl);
-
-                      if (widget != null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text("Profile image added")),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text("Failed to add profile image")),
-                        );
-                      }
-
-                      Navigator.pop(context);
-                    },
-                  ),
-                  ListTile(
-                    leading: Icon(Icons.add_photo_alternate),
-                    title: Text("Upload New Image"),
-                    onTap: () async {
-                      // 갤러리에서 이미지 선택
-                      await _pickAndUploadProfileImage(context);
-                      Navigator.pop(context);
-                    },
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+    if (widget != null) {
+      _handleShowSuccessMessage(_textBoxAddedMessage);
+    } else {
+      _handleShowErrorMessage(_textBoxFailedMessage);
+    }
   }
 
-  // 프로필 이미지 선택 및 업로드
-  Future<void> _pickAndUploadProfileImage(BuildContext context) async {
+  /// 현재 프로필 이미지 사용 처리
+  Future<void> _handleUseCurrentProfileImage() async {
+    final userProvider = Provider.of<UserProvider>(context, listen: false);
+    final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
+    final String profileImageUrl = userProvider.profileImage;
+
+    if (profileImageUrl.isEmpty) {
+      _handleShowErrorMessage(_noProfileImageMessage);
+      Navigator.pop(context);
+      return;
+    }
+
+    final AlbumWidget? widget = await widgetProvider.addProfileWidget(profileImageUrl);
+
+    if (widget != null) {
+      _handleShowSuccessMessage(_profileImageAddedMessage);
+    } else {
+      _handleShowErrorMessage(_profileImageFailedMessage);
+    }
+
+    Navigator.pop(context);
+  }
+
+  /// 새 이미지 업로드 및 프로필 설정 처리
+  Future<void> _handlePickAndUploadProfileImage(BuildContext context) async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
 
-    // ApiService에서 직접 userId 가져오기
-    String? userId = await ApiService.getUserId();
+    final String? userId = await ApiService.getUserId();
 
     if (userId == null || userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User ID not found. Please login again.")),
-      );
+      _handleShowErrorMessage(_userIdNotFoundMessage);
       return;
     }
 
     try {
-      // 이미지 피커 라이브러리 사용
       final ImagePicker picker = ImagePicker();
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
       if (image == null) return;
 
-      // 로딩 표시
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Uploading image...")),
-      );
+      _handleShowInfoMessage(_uploadingImageMessage);
 
-      // 이미지 파일로 변환
-      File imageFile = File(image.path);
-
-      // 프로필 이미지 업데이트
-      Map<String, dynamic> result = await UserApi.updateProfileImage(
+      final File imageFile = File(image.path);
+      final Map<String, dynamic> result = await UserApi.updateProfileImage(
         userId: userId,
         profileImage: imageFile,
       );
 
-      if (result.containsKey("error")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(
-              "Failed to update profile image: ${result["error"]}")),
-        );
+      if (result.containsKey(_errorKey)) {
+        _handleShowErrorMessage(_profileImageUpdateFailedMessage + result[_errorKey]);
         return;
       }
 
-      // 사용자 정보 다시 로드
       await userProvider.loadUserInfo(forceRefresh: true);
 
-      // 프로필 이미지 위젯 추가
-      String profileImageUrl = userProvider.profileImage;
+      final String profileImageUrl = userProvider.profileImage;
       if (profileImageUrl.isNotEmpty) {
-        // 기존 프로필 위젯의 이미지 URL 모두 업데이트
         await widgetProvider.updateAllProfileWidgetsImageUrl(profileImageUrl);
 
-        // 새 위젯 추가
-        AlbumWidget? widget = await widgetProvider.addProfileWidget(
-            profileImageUrl);
+        final AlbumWidget? widget = await widgetProvider.addProfileWidget(profileImageUrl);
 
         if (widget != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Profile image updated and added to album")),
-          );
+          _handleShowSuccessMessage(_profileImageUpdatedAndAddedMessage);
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(
-                "Profile image updated but failed to add to album")),
-          );
+          _handleShowErrorMessage(_profileImageUpdatedButFailedMessage);
         }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Profile image updated but URL is empty")),
-        );
+        _handleShowErrorMessage(_profileImageUpdatedButEmptyMessage);
       }
     } catch (e) {
-      print("[ERROR] 이미지 선택/업로드 오류: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error selecting/uploading image: $e")),
-      );
+      _handleShowErrorMessage(_imageUploadErrorMessage + e.toString());
     }
   }
 
-  // 위젯 수정 메뉴 표시
-  void _showWidgetEditMenu(BuildContext context, AlbumWidget widget) {
-    final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
-
+  /// 위젯 편집 메뉴 표시
+  void _handleShowWidgetEditMenu(BuildContext context, AlbumWidget widget) {
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
         return Container(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(_containerPadding),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text("Edit Widget",
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              // 위젯 타입에 따른 수정 옵션
-              if (widget.type == "profile_image") ...[
-                ListTile(
-                  leading: Icon(Icons.format_shapes),
-                  title: Text("Change Shape"),
-                  onTap: () {
-                    // 모양 변경 (원형 <-> 사각형)
-                    String currentShape = widget.extraData['shape'] ?? 'circle';
-                    String newShape = currentShape == 'circle'
-                        ? 'rectangle'
-                        : 'circle';
-                    widgetProvider.updateProfileWidgetShape(
-                        widget.id, newShape);
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-              if (widget.type == "checklist") ...[
-                ListTile(
-                  leading: Icon(Icons.add_task),
-                  title: Text("Add New Item"),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _showAddChecklistItemDialog(widget);
-                  },
-                ),
-              ],
-              // 삭제 옵션
-              ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text(
-                    "Delete Widget", style: TextStyle(color: Colors.red)),
-                onTap: () {
-                  widgetProvider.deleteWidget(widget.id);
-                  Navigator.pop(context);
-                },
-              ),
+              _buildModalTitle(_editWidgetTitle),
+              const SizedBox(height: _titleSpacing),
+              ..._buildWidgetSpecificOptions(widget),
+              _buildDeleteOption(widget),
             ],
           ),
         );
@@ -362,76 +275,229 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
     );
   }
 
-  void _addTextBoxWidget() async {
+  /// 프로필 위젯 모양 변경 처리
+  void _handleProfileWidgetShapeChange(AlbumWidget widget) {
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
-    AlbumWidget? widget = await widgetProvider.addTextBoxWidget();
-    if (widget != null) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Text Box widget added")));
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to add text box widget")));
-    }
+    final String currentShape = widget.extraData[_shapeKey] ?? _circleShape;
+    final String newShape = currentShape == _circleShape ? _rectangleShape : _circleShape;
+
+    widgetProvider.updateProfileWidgetShape(widget.id, newShape);
+    Navigator.pop(context);
   }
 
-  // 체크리스트 항목 추가 다이얼로그
-  void _showAddChecklistItemDialog(AlbumWidget widget) {
+  /// 체크리스트 항목 추가 다이얼로그 표시
+  void _handleShowAddChecklistItemDialog(AlbumWidget widget) {
     final TextEditingController controller = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Add Item'),
+        title: const Text(_addItemTitle),
         content: TextField(
           controller: controller,
-          decoration: InputDecoration(hintText: 'New item'),
+          decoration: const InputDecoration(hintText: _newItemHint),
           autofocus: true,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancel'),
+            child: const Text(_cancelText),
           ),
           TextButton(
-            onPressed: () {
-              // 체크리스트 위젯에 직접 항목 추가
-              // 이렇게 하면 다른 방식으로 항목을 추가할 수도 있습니다
-              Navigator.pop(context);
-            },
-            child: Text('Add'),
+            onPressed: () => Navigator.pop(context),
+            child: const Text(_addText),
           ),
         ],
       ),
     );
   }
 
-  // 위젯 렌더링
+  /// 위젯 삭제 처리
+  void _handleDeleteWidget(AlbumWidget widget) {
+    final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
+    widgetProvider.deleteWidget(widget.id);
+    Navigator.pop(context);
+  }
+
+  /// 위젯 선택 처리
+  void _handleWidgetTap(AlbumWidget widget) {
+    // 위젯 선택 상태 변경 로직
+  }
+
+  /// 성공 메시지 표시
+  void _handleShowSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// 에러 메시지 표시
+  void _handleShowErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// 정보 메시지 표시
+  void _handleShowInfoMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// 모달 제목 위젯 생성
+  Widget _buildModalTitle(String title) {
+    return Text(
+      title,
+      style: const TextStyle(fontSize: _titleFontSize, fontWeight: FontWeight.bold),
+    );
+  }
+
+  /// 캔버스 설정 위젯 생성
+  Widget _buildCanvasSettings() {
+    return Consumer<CanvasProvider>(
+      builder: (context, canvasProvider, child) {
+        return CanvasSettings(
+          initialColor: canvasProvider.canvasColor,
+          initialPattern: canvasProvider.canvasPattern,
+          onSettingsChanged: (color, pattern) {
+            canvasProvider.updateCanvasSettings(color, pattern);
+          },
+        );
+      },
+    );
+  }
+
+  /// 프로필 이미지 추가 옵션 위젯 생성
+  Widget _buildAddProfileImageOption() {
+    return ListTile(
+      leading: const Icon(Icons.account_circle),
+      title: const Text(_addProfileImageText),
+      onTap: () {
+        Navigator.pop(context);
+        _showProfileImageOptionsBottomSheet();
+      },
+    );
+  }
+
+  /// 체크리스트 추가 옵션 위젯 생성
+  Widget _buildAddChecklistOption() {
+    return ListTile(
+      leading: const Icon(Icons.checklist),
+      title: const Text(_addChecklistText),
+      onTap: () {
+        Navigator.pop(context);
+        _handleAddChecklistWidget();
+      },
+    );
+  }
+
+  /// 텍스트박스 추가 옵션 위젯 생성
+  Widget _buildAddTextBoxOption() {
+    return ListTile(
+      leading: const Icon(Icons.text_fields),
+      title: const Text(_addTextBoxText),
+      onTap: () {
+        Navigator.pop(context);
+        _handleAddTextBoxWidget();
+      },
+    );
+  }
+
+  /// 프로필 이미지 옵션 바텀시트 표시
+  void _showProfileImageOptionsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(_containerPadding),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildModalTitle(_profileImageOptionsTitle),
+              const SizedBox(height: _sectionSpacing),
+              _buildUseCurrentProfileOption(),
+              _buildUploadNewImageOption(),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 현재 프로필 이미지 사용 옵션 위젯 생성
+  Widget _buildUseCurrentProfileOption() {
+    return ListTile(
+      leading: const Icon(Icons.photo_library),
+      title: const Text(_useCurrentProfileText),
+      onTap: _handleUseCurrentProfileImage,
+    );
+  }
+
+  /// 새 이미지 업로드 옵션 위젯 생성
+  Widget _buildUploadNewImageOption() {
+    return ListTile(
+      leading: const Icon(Icons.add_photo_alternate),
+      title: const Text(_uploadNewImageText),
+      onTap: () async {
+        await _handlePickAndUploadProfileImage(context);
+        Navigator.pop(context);
+      },
+    );
+  }
+
+  /// 위젯별 특정 옵션들 생성
+  List<Widget> _buildWidgetSpecificOptions(AlbumWidget widget) {
+    if (widget.type == _profileImageType) {
+      return [
+        ListTile(
+          leading: const Icon(Icons.format_shapes),
+          title: const Text(_changeShapeText),
+          onTap: () => _handleProfileWidgetShapeChange(widget),
+        ),
+      ];
+    } else if (widget.type == _checklistType) {
+      return [
+        ListTile(
+          leading: const Icon(Icons.add_task),
+          title: const Text(_addNewItemText),
+          onTap: () {
+            Navigator.pop(context);
+            _handleShowAddChecklistItemDialog(widget);
+          },
+        ),
+      ];
+    }
+    return [];
+  }
+
+  /// 삭제 옵션 위젯 생성
+  Widget _buildDeleteOption(AlbumWidget widget) {
+    return ListTile(
+      leading: const Icon(Icons.delete, color: Colors.red),
+      title: const Text(_deleteWidgetText, style: TextStyle(color: Colors.red)),
+      onTap: () => _handleDeleteWidget(widget),
+    );
+  }
+
+  /// 위젯 렌더링
   Widget _buildWidget(AlbumWidget widget) {
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
-    bool _isSelected = false; // 선택 상태 변수 추가
 
-    // 위젯 타입에 따라 다른 위젯 반환
     Widget content;
-
-    if (widget.type == "profile_image") {
+    if (widget.type == _profileImageType) {
       content = ProfileImageWidget(widget: widget);
-    } else if (widget.type == "checklist") {
+    } else if (widget.type == _checklistType) {
       content = ChecklistWidget(widget: widget);
-    } else if (widget.type == "text_box") {
-      // isSelected 상태 명시적으로 전달
-      content = TextBoxWidget(
-        widget: widget,
-        isSelected: true, // 항상 선택된 상태로 설정 (임시)
-      );
+    } else if (widget.type == _textBoxType) {
+      content = TextBoxWidget(widget: widget, isSelected: true);
     } else {
-      // 지원되지 않는 위젯 타입
       content = Container(
         color: Colors.grey,
         child: Center(child: Text(widget.type)),
       );
     }
 
-    // 드래그 가능한 컨테이너로 래핑
     return DraggableWidget(
       key: ValueKey(widget.id),
       initialX: widget.x,
@@ -439,24 +505,31 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
       width: widget.width,
       height: widget.height,
       widgetType: widget.type,
-      // 텍스트박스인 경우에만 자유 크기 조절 모드 사용
-      resizeMode: widget.type == "text_box" ? ResizeMode.free : ResizeMode.aspectRatio,
+      resizeMode: widget.type == _textBoxType ? ResizeMode.free : ResizeMode.aspectRatio,
       onPositionChanged: (x, y) {
         widgetProvider.updateWidgetPosition(widget.id, x, y);
       },
       onSizeChanged: (width, height) {
         widgetProvider.updateWidgetSize(widget.id, width, height);
       },
-      onTap: () {
-        setState(() {
-          _isSelected = true; // 선택 상태로 변경
-        });
-        print("위젯 선택됨: ${widget.id}");
-      },
-      onLongPress: () {
-        _showWidgetEditMenu(context, widget);
-      },
+      onTap: () => _handleWidgetTap(widget),
+      onLongPress: () => _handleShowWidgetEditMenu(context, widget),
       child: content,
+    );
+  }
+
+  /// 캔버스 배경 데코레이션 생성
+  BoxDecoration _buildCanvasDecoration(CanvasProvider canvasProvider) {
+    return BoxDecoration(
+      color: canvasProvider.canvasColor,
+      image: canvasProvider.canvasPattern == _nonePattern
+          ? null
+          : DecorationImage(
+        image: AssetImage(
+          _patternsAssetPath + canvasProvider.canvasPattern + _patternFileExtension,
+        ),
+        repeat: ImageRepeat.repeat,
+      ),
     );
   }
 
@@ -467,11 +540,8 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
   Widget build(BuildContext context) {
     super.build(context);
 
-    // 로딩 중이면 로딩 화면 표시
     if (_isLoading) {
-      return Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     return Consumer2<CanvasProvider, WidgetProvider>(
@@ -479,19 +549,9 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
         return Container(
           width: double.infinity,
           height: double.infinity,
-          decoration: BoxDecoration(
-            color: canvasProvider.canvasColor,
-            image: canvasProvider.canvasPattern == "none"
-                ? null
-                : DecorationImage(
-              image: AssetImage(
-                  "assets/patterns/${canvasProvider.canvasPattern}.png"),
-              repeat: ImageRepeat.repeat,
-            ),
-          ),
+          decoration: _buildCanvasDecoration(canvasProvider),
           child: Stack(
             children: [
-              // 모든 위젯 렌더링
               ...widgetProvider.widgets.map((widget) => _buildWidget(widget)),
             ],
           ),

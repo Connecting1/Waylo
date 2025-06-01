@@ -12,6 +12,34 @@ class SignUpBirthDatePage extends StatefulWidget {
 }
 
 class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Create account";
+  static const String _questionText = "What's your date of birth?";
+  static const String _dateHintText = "YYYY-MM-DD";
+  static const String _nextButtonText = "Next";
+  static const String _datePadCharacter = "0";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 15;
+  static const double _questionFontSize = 25;
+  static const double _buttonFontSize = 18;
+
+  // 크기 상수들
+  static const double _toolbarHeight = 56;
+  static const double _horizontalPadding = 20;
+  static const double _inputBorderRadius = 10.0;
+  static const double _inputVerticalPadding = 15.0;
+  static const double _inputHorizontalPadding = 20.0;
+  static const double _buttonTopSpacing = 30;
+  static const double _buttonWidth = 100;
+  static const double _buttonHeight = 50;
+
+  // 날짜 관련 상수들
+  static const int _minYear = 1900;
+  static const int _minMonth = 1;
+  static const int _minDay = 1;
+  static const int _datePadLength = 2;
+
   final TextEditingController _birthDateController = TextEditingController();
   bool _isBirthDateValid = false;
 
@@ -20,13 +48,13 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
-      firstDate: DateTime(1900, 1, 1),
+      firstDate: DateTime(_minYear, _minMonth, _minDay),
       lastDate: DateTime.now(),
     );
 
     if (pickedDate != null) {
       String formattedDate =
-          "${pickedDate.year}-${pickedDate.month.toString().padLeft(2, '0')}-${pickedDate.day.toString().padLeft(2, '0')}";
+          "${pickedDate.year}-${pickedDate.month.toString().padLeft(_datePadLength, _datePadCharacter)}-${pickedDate.day.toString().padLeft(_datePadLength, _datePadCharacter)}";
 
       setState(() {
         _birthDateController.text = formattedDate;
@@ -56,25 +84,28 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Create account",
+          _appBarTitle,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: _appBarTitleFontSize,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56,
+        toolbarHeight: _toolbarHeight,
       ),
       body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20),
+        padding: const EdgeInsets.only(
+          left: _horizontalPadding,
+          right: _horizontalPadding,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "What's your date of birth?",
+              _questionText,
               style: TextStyle(
-                fontSize: 25,
+                fontSize: _questionFontSize,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -87,30 +118,30 @@ class _SignUpBirthDatePageState extends State<SignUpBirthDatePage> {
               decoration: InputDecoration(
                 filled: true,
                 fillColor: Colors.white,
-                hintText: "YYYY-MM-DD",
+                hintText: _dateHintText,
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+                  borderRadius: BorderRadius.circular(_inputBorderRadius),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 15.0,
-                  horizontal: 20.0,
+                  vertical: _inputVerticalPadding,
+                  horizontal: _inputHorizontalPadding,
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: _buttonTopSpacing),
             Center(
               child: SizedBox(
-                width: 100,
-                height: 50,
+                width: _buttonWidth,
+                height: _buttonHeight,
                 child: ElevatedButton(
                   onPressed: _isBirthDateValid ? () => _goToGenderPage(context) : null,
                   style: ButtonStyles.formButtonStyle(context, isEnabled: _isBirthDateValid),
                   child: const Text(
-                    "Next",
+                    _nextButtonText,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: _buttonFontSize,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

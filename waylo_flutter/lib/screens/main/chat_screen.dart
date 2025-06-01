@@ -12,6 +12,30 @@ class ChatScreenPage extends StatefulWidget {
 }
 
 class _ChatScreenPageState extends State<ChatScreenPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Chat";
+  static const String _tryAgainButtonText = "Try Again";
+  static const String _emptyStateMessage = "No chat rooms available.\nFind friends and start a conversation!";
+  static const String _noMessagesText = "No messages";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 16;
+  static const double _emptyStateFontSize = 16;
+  static const double _unreadBadgeFontSize = 12;
+
+  // 크기 상수들
+  static const double _listPaddingLeft = 10.0;
+  static const double _listPaddingTop = 0.0;
+  static const double _listPaddingRight = 10.0;
+  static const double _listPaddingBottom = 10.0;
+  static const double _errorStateSpacing = 16;
+  static const double _borderWidth = 1;
+  static const double _unreadBadgePadding = 6;
+
+  // 텍스트 스타일 상수들
+  static const int _subtitleMaxLines = 1;
+  static const TextOverflow _subtitleOverflow = TextOverflow.ellipsis;
+
   @override
   void initState() {
     super.initState();
@@ -53,8 +77,12 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
           ? AppColors.darkSurface
           : AppColors.primary,
       title: const Text(
-        "Chat",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+        _appBarTitle,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: _appBarTitleFontSize,
+        ),
       ),
       centerTitle: true,
     );
@@ -79,7 +107,7 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
 
   /// 로딩 상태 위젯
   Widget _buildLoadingState() {
-    return Center(child: CircularProgressIndicator());
+    return const Center(child: CircularProgressIndicator());
   }
 
   /// 에러 상태 위젯
@@ -89,10 +117,10 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(chatProvider.errorMessage),
-          SizedBox(height: 16),
+          const SizedBox(height: _errorStateSpacing),
           ElevatedButton(
             onPressed: () => chatProvider.loadChatRooms(),
-            child: Text('Try Again'),
+            child: const Text(_tryAgainButtonText),
           ),
         ],
       ),
@@ -103,11 +131,11 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
   Widget _buildEmptyState() {
     return Center(
       child: Text(
-        'No chat rooms available.\nFind friends and start a conversation!',
+        _emptyStateMessage,
         textAlign: TextAlign.center,
         style: TextStyle(
           color: Colors.grey[600],
-          fontSize: 16,
+          fontSize: _emptyStateFontSize,
         ),
       ),
     );
@@ -118,7 +146,12 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
     return RefreshIndicator(
       onRefresh: () => chatProvider.loadChatRooms(),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 10.0),
+        padding: const EdgeInsets.fromLTRB(
+          _listPaddingLeft,
+          _listPaddingTop,
+          _listPaddingRight,
+          _listPaddingBottom,
+        ),
         child: ListView.builder(
           itemCount: chatProvider.rooms.length,
           itemBuilder: (context, index) {
@@ -137,7 +170,7 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
         border: Border(
           bottom: BorderSide(
             color: Colors.grey[200]!,
-            width: 1,
+            width: _borderWidth,
           ),
         ),
       ),
@@ -145,9 +178,9 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
         leading: _buildProfileAvatar(room),
         title: Text(room.friendName),
         subtitle: Text(
-          room.lastMessage ?? 'No messages',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          room.lastMessage ?? _noMessagesText,
+          maxLines: _subtitleMaxLines,
+          overflow: _subtitleOverflow,
         ),
         trailing: _buildUnreadBadge(room),
         onTap: () => _navigateToChatRoom(room, chatProvider),
@@ -173,16 +206,16 @@ class _ChatScreenPageState extends State<ChatScreenPage> {
     if (room.unreadCount <= 0) return null;
 
     return Container(
-      padding: const EdgeInsets.all(6),
-      decoration: BoxDecoration(
+      padding: const EdgeInsets.all(_unreadBadgePadding),
+      decoration: const BoxDecoration(
         color: Colors.red,
         shape: BoxShape.circle,
       ),
       child: Text(
         room.unreadCount.toString(),
-        style: TextStyle(
+        style: const TextStyle(
           color: Colors.white,
-          fontSize: 12,
+          fontSize: _unreadBadgeFontSize,
         ),
       ),
     );

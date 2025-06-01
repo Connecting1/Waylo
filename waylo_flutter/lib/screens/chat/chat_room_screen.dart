@@ -24,6 +24,58 @@ class ChatRoomScreen extends StatefulWidget {
 }
 
 class _ChatRoomScreenState extends State<ChatRoomScreen> {
+  // 텍스트 상수들
+  static const String _messageInputHint = 'Type a message';
+  static const String _readUpToHereText = ' has read up to here';
+  static const String _messageInfoTitle = 'Message Info';
+  static const String _timePrefix = 'Time: ';
+  static const String _statusPrefix = 'Status: ';
+  static const String _readStatus = 'Read';
+  static const String _unreadStatus = 'Unread';
+  static const String _okButtonText = 'OK';
+
+  // 날짜 포맷 상수들
+  static const String _todayTimeFormat = 'HH:mm';
+  static const String _currentYearFormat = 'd MMMM, HH:mm';
+  static const String _fullDateFormat = 'd MMMM yyyy, HH:mm';
+
+  // 크기 상수들
+  static const double _appBarProfileRadius = 20;
+  static const double _appBarSpacing = 10;
+  static const double _messageListPadding = 8;
+  static const double _inputAreaPadding = 8;
+  static const double _inputProfileRadius = 16;
+  static const double _inputProfilePadding = 8.0;
+  static const double _inputProfileIconSize = 20;
+  static const double _inputHorizontalPadding = 16;
+  static const double _inputVerticalPadding = 10;
+  static const double _unreadLineMargin = 8;
+  static const double _unreadLinePadding = 8;
+  static const double _unreadLineFontSize = 12;
+  static const double _unreadLineHeight = 1;
+  static const double _messageHorizontalMargin = 8;
+  static const double _messageVerticalMargin = 4;
+  static const double _messageHorizontalPadding = 12;
+  static const double _messageVerticalPadding = 8;
+  static const double _messageBorderRadius = 12;
+  static const double _messageInfoTitleFontSize = 16;
+  static const double _messageInfoTextFontSize = 14;
+  static const double _messageInfoSpacing = 8;
+
+  // 비율 상수들
+  static const double _messageMaxWidthRatio = 0.7;
+
+  // 애니메이션 상수들
+  static const int _scrollAnimationDuration = 300;
+
+  // 투명도 상수들
+  static const double _darkShadowOpacity = 0.3;
+  static const double _lightShadowOpacity = 0.5;
+
+  // 그림자 상수들
+  static const double _shadowSpreadRadius = 1;
+  static const double _shadowBlurRadius = 5;
+
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -44,7 +96,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: Duration(milliseconds: 300),
+          duration: const Duration(milliseconds: _scrollAnimationDuration),
           curve: Curves.easeOut,
         );
       }
@@ -108,12 +160,12 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: widget.friendProfileImage.isEmpty
                 ? Icon(Icons.person, color: Colors.grey[600])
                 : null,
-            radius: 20,
+            radius: _appBarProfileRadius,
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: _appBarSpacing),
           Text(
             widget.friendName,
-            style: TextStyle(
+            style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
             ),
@@ -132,7 +184,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       child: Consumer<ChatProvider>(
         builder: (context, chatProvider, child) {
           if (chatProvider.isLoadingMessages && chatProvider.getMessages(widget.roomId).isEmpty) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           final messages = chatProvider.getMessages(widget.roomId);
@@ -140,7 +192,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           return ListView.builder(
             controller: _scrollController,
             itemCount: messages.length,
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(_messageListPadding),
             itemBuilder: (context, index) {
               final message = messages[index];
 
@@ -162,7 +214,7 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Container(
-      padding: EdgeInsets.all(8),
+      padding: const EdgeInsets.all(_inputAreaPadding),
       decoration: BoxDecoration(
         color: themeProvider.isDarkMode
             ? AppColors.darkSurface
@@ -170,26 +222,26 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         boxShadow: [
           BoxShadow(
             color: themeProvider.isDarkMode
-                ? Colors.black.withOpacity(0.3)
-                : Colors.grey.withOpacity(0.5),
-            spreadRadius: 1,
-            blurRadius: 5,
+                ? Colors.black.withOpacity(_darkShadowOpacity)
+                : Colors.grey.withOpacity(_lightShadowOpacity),
+            spreadRadius: _shadowSpreadRadius,
+            blurRadius: _shadowBlurRadius,
           ),
         ],
       ),
       child: Row(
         children: [
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8.0),
+            padding: const EdgeInsets.symmetric(horizontal: _inputProfilePadding),
             child: CircleAvatar(
-              radius: 16,
+              radius: _inputProfileRadius,
               backgroundImage: userProvider.profileImage.isNotEmpty
                   ? NetworkImage(userProvider.profileImage)
                   : null,
               child: userProvider.profileImage.isEmpty
                   ? Icon(
                 Icons.person,
-                size: 20,
+                size: _inputProfileIconSize,
                 color: themeProvider.isDarkMode
                     ? Colors.grey[400]
                     : Colors.grey[600],
@@ -209,21 +261,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     : Colors.black87,
               ),
               decoration: InputDecoration(
-                hintText: 'Type a message',
+                hintText: _messageInputHint,
                 hintStyle: TextStyle(
                   color: themeProvider.isDarkMode
                       ? Colors.grey[400]
                       : Colors.grey[600],
                 ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: _inputHorizontalPadding,
+                  vertical: _inputVerticalPadding,
+                ),
               ),
               textInputAction: TextInputAction.send,
               onSubmitted: (_) => _sendMessage(),
             ),
           ),
           IconButton(
-            icon: Icon(
+            icon: const Icon(
               Icons.send,
               color: AppColors.primary,
             ),
@@ -240,18 +295,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       children: [
         if (showUnreadLine)
           Container(
-            margin: EdgeInsets.symmetric(vertical: 8),
+            margin: const EdgeInsets.symmetric(vertical: _unreadLineMargin),
             child: Row(
               children: [
-                Expanded(child: Container(height: 1, color: Colors.grey[300])),
+                Expanded(child: Container(height: _unreadLineHeight, color: Colors.grey[300])),
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: _unreadLinePadding),
                   child: Text(
-                    '${widget.friendName} has read up to here',
-                    style: TextStyle(color: Colors.grey[500], fontSize: 12),
+                    '${widget.friendName}$_readUpToHereText',
+                    style: TextStyle(
+                      color: Colors.grey[500],
+                      fontSize: _unreadLineFontSize,
+                    ),
                   ),
                 ),
-                Expanded(child: Container(height: 1, color: Colors.grey[300])),
+                Expanded(child: Container(height: _unreadLineHeight, color: Colors.grey[300])),
               ],
             ),
           ),
@@ -261,18 +319,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             onLongPress: () => _showMessageInfo(message),
             child: ConstrainedBox(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.7,
+                maxWidth: MediaQuery.of(context).size.width * _messageMaxWidthRatio,
               ),
               child: Container(
-                margin: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.symmetric(
+                  horizontal: _messageHorizontalMargin,
+                  vertical: _messageVerticalMargin,
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: _messageHorizontalPadding,
+                  vertical: _messageVerticalPadding,
+                ),
                 decoration: BoxDecoration(
                   color: message.isMine ? AppColors.primary : Colors.grey[200],
                   borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(12),
-                    topRight: Radius.circular(12),
-                    bottomLeft: Radius.circular(message.isMine ? 12 : 0),
-                    bottomRight: Radius.circular(message.isMine ? 0 : 12),
+                    topLeft: const Radius.circular(_messageBorderRadius),
+                    topRight: const Radius.circular(_messageBorderRadius),
+                    bottomLeft: Radius.circular(message.isMine ? _messageBorderRadius : 0),
+                    bottomRight: Radius.circular(message.isMine ? 0 : _messageBorderRadius),
                   ),
                 ),
                 child: Text(
@@ -298,26 +362,29 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Message Info',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            const Text(
+              _messageInfoTitle,
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: _messageInfoTitleFontSize,
+              ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: _messageInfoSpacing),
             Text(
-              'Time: ${_formatDetailTime(message.createdAt)}',
-              style: TextStyle(fontSize: 14),
+              '$_timePrefix${_formatDetailTime(message.createdAt)}',
+              style: const TextStyle(fontSize: _messageInfoTextFontSize),
             ),
             if (message.isMine)
               Text(
-                'Status: ${message.isRead ? 'Read' : 'Unread'}',
-                style: TextStyle(fontSize: 14),
+                '$_statusPrefix${message.isRead ? _readStatus : _unreadStatus}',
+                style: const TextStyle(fontSize: _messageInfoTextFontSize),
               ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('OK'),
+            child: const Text(_okButtonText),
           ),
         ],
       ),
@@ -331,11 +398,11 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
     final messageDate = DateTime(dateTime.year, dateTime.month, dateTime.day);
 
     if (messageDate == today) {
-      return DateFormat('HH:mm').format(dateTime);
+      return DateFormat(_todayTimeFormat).format(dateTime);
     } else if (messageDate.year == today.year) {
-      return DateFormat('d MMMM, HH:mm').format(dateTime);
+      return DateFormat(_currentYearFormat).format(dateTime);
     } else {
-      return DateFormat('d MMMM yyyy, HH:mm').format(dateTime);
+      return DateFormat(_fullDateFormat).format(dateTime);
     }
   }
 

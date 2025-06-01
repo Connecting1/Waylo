@@ -1,4 +1,3 @@
-// lib/screen/setting/profile_picture_screen.dart
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,7 +8,6 @@ import 'package:waylo_flutter/providers/widget_provider.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
 import 'package:waylo_flutter/styles/app_styles.dart';
-
 import '../../providers/theme_provider.dart';
 
 class ProfilePictureScreen extends StatefulWidget {
@@ -20,31 +18,64 @@ class ProfilePictureScreen extends StatefulWidget {
 }
 
 class _ProfilePictureScreenState extends State<ProfilePictureScreen> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Change Profile Picture";
+  static const String _cropProfilePictureTitle = "Crop Profile Picture";
+  static const String _tapToChangeText = "Tap to change profile picture";
+
+  // 성공 메시지 상수들
+  static const String _uploadingImageMessage = "Uploading image...";
+  static const String _profileImageUpdatedMessage = "Profile image updated successfully";
+
+  // 에러 메시지 상수들
+  static const String _userIdNotFoundMessage = "User ID not found. Please login again.";
+  static const String _updateFailedMessage = "Failed to update profile image: ";
+  static const String _profileImageUpdatedButEmptyMessage = "Profile image updated but URL is empty";
+  static const String _uploadErrorMessage = "Error uploading image: ";
+
+  // API 키 상수들
+  static const String _errorKey = "error";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 20;
+  static const double _instructionTextFontSize = 16;
+
+  // 크기 상수들
+  static const double _profileImageRadius = 80;
+  static const double _profileIconSize = 80;
+  static const double _cameraIconSize = 24;
+  static const double _cameraIconPadding = 8;
+  static const double _instructionTextSpacing = 30;
+  static const double _loadingIndicatorSpacing = 20;
+
+  // 이미지 크롭 비율 상수들
+  static const double _cropAspectRatioX = 1;
+  static const double _cropAspectRatioY = 1;
+
   bool _isLoading = false;
 
-  // 이미지 선택 및 크롭 (정사각형으로 고정)
-  Future<File?> _pickAndCropImage() async {
+  /// 이미지 선택 및 크롭 처리
+  Future<File?> _handlePickAndCropImage() async {
     final picker = ImagePicker();
     final XFile? pickedImage = await picker.pickImage(source: ImageSource.gallery);
 
     if (pickedImage == null) return null;
 
-    // ImageCropper로 정사각형 크롭
     CroppedFile? croppedFile = await ImageCropper().cropImage(
       sourcePath: pickedImage.path,
-      aspectRatio: CropAspectRatio(ratioX: 1, ratioY: 1), // 1:1 정사각형 비율
+      aspectRatio: const CropAspectRatio(ratioX: _cropAspectRatioX, ratioY: _cropAspectRatioY),
       uiSettings: [
         AndroidUiSettings(
-          toolbarTitle: 'Crop Profile Picture',
+          toolbarTitle: _cropProfilePictureTitle,
           toolbarColor: AppColors.primary,
           toolbarWidgetColor: Colors.white,
           activeControlsWidgetColor: AppColors.primary,
-          lockAspectRatio: true, // 비율 고정
+          lockAspectRatio: true,
         ),
         IOSUiSettings(
-          title: 'Crop Profile Picture',
-          aspectRatioLockEnabled: true, // 비율 고정
-          resetAspectRatioEnabled: false, // 비율 리셋 불가
+          title: _cropProfilePictureTitle,
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
         ),
       ],
     );
@@ -52,17 +83,15 @@ class _ProfilePictureScreenState extends State<ProfilePictureScreen> {
     return croppedFile != null ? File(croppedFile.path) : null;
   }
 
-  // 프로필 이미지 선택, 크롭 및 업로드
-  Future<void> _pickAndUploadProfileImage() async {
+  /// 프로필 이미지 선택, 크롭 및 업로드 처리
+  Future<void> _handlePickAndUploadProfileImage() async {
     final userProvider = Provider.of<UserProvider>(context, listen: false);
     final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
 
     String? userId = await ApiService.getUserId();
 
     if (userId == null || userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("User ID not found. Please login again.")),
-      );
+      _handleShowErrorMessage(_userIdNotFoundMessage);
       return;
     }
 
@@ -71,8 +100,7 @@ class _ProfilePictureScreenState extends State<ProfilePictureScreen> {
     });
 
     try {
-      // 이미지 선택 및 크롭
-      File? croppedImage = await _pickAndCropImage();
+      File? croppedImage = await _handlePickAndCropImage();
 
       if (croppedImage == null) {
         setState(() {
@@ -81,49 +109,31 @@ class _ProfilePictureScreenState extends State<ProfilePictureScreen> {
         return;
       }
 
-      // 로딩 표시
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Uploading image...")),
-      );
+      _handleShowInfoMessage(_uploadingImageMessage);
 
-      // 프로필 이미지 업데이트
       Map<String, dynamic> result = await UserApi.updateProfileImage(
         userId: userId,
         profileImage: croppedImage,
       );
 
-      if (result.containsKey("error")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to update profile image: ${result["error"]}")),
-        );
+      if (result.containsKey(_errorKey)) {
+        _handleShowErrorMessage("$_updateFailedMessage${result[_errorKey]}");
         return;
       }
 
-      // 사용자 정보 다시 로드
       await userProvider.loadUserInfo(forceRefresh: true);
 
-      // 프로필 이미지 위젯 업데이트
       String profileImageUrl = userProvider.profileImage;
       if (profileImageUrl.isNotEmpty) {
-        // 기존 프로필 위젯의 이미지 URL 모두 업데이트
         await widgetProvider.updateAllProfileWidgetsImageUrl(profileImageUrl);
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Profile image updated successfully")),
-        );
-
-        // 성공 후 이전 화면으로 돌아가기
+        _handleShowSuccessMessage(_profileImageUpdatedMessage);
         Navigator.pop(context, true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Profile image updated but URL is empty")),
-        );
+        _handleShowErrorMessage(_profileImageUpdatedButEmptyMessage);
       }
     } catch (e) {
-      print("[ERROR] 이미지 선택/업로드 오류: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error uploading image: $e")),
-      );
+      _handleShowErrorMessage("$_uploadErrorMessage$e");
     } finally {
       setState(() {
         _isLoading = false;
@@ -131,83 +141,130 @@ class _ProfilePictureScreenState extends State<ProfilePictureScreen> {
     }
   }
 
+  /// 성공 메시지 표시 처리
+  void _handleShowSuccessMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// 에러 메시지 표시 처리
+  void _handleShowErrorMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// 정보 메시지 표시 처리
+  void _handleShowInfoMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
+
+  /// AppBar 구성
+  AppBar _buildAppBar() {
+    return AppBar(
+      backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
+          ? AppColors.darkSurface
+          : AppColors.primary,
+      title: const Text(
+        _appBarTitle,
+        style: TextStyle(
+          fontSize: _appBarTitleFontSize,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+      leading: IconButton(
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
+        onPressed: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  /// 프로필 이미지 위젯 구성
+  Widget _buildProfileImage(UserProvider userProvider) {
+    return GestureDetector(
+      onTap: _isLoading ? null : _handlePickAndUploadProfileImage,
+      child: Stack(
+        alignment: Alignment.bottomRight,
+        children: [
+          CircleAvatar(
+            radius: _profileImageRadius,
+            backgroundImage: userProvider.profileImage.isNotEmpty
+                ? NetworkImage(userProvider.profileImage)
+                : null,
+            backgroundColor: Colors.grey[300],
+            child: userProvider.profileImage.isEmpty
+                ? Icon(Icons.person, size: _profileIconSize, color: Colors.grey[600])
+                : null,
+          ),
+          if (!_isLoading) _buildCameraIcon(),
+        ],
+      ),
+    );
+  }
+
+  /// 카메라 아이콘 위젯 구성
+  Widget _buildCameraIcon() {
+    return Container(
+      padding: const EdgeInsets.all(_cameraIconPadding),
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        shape: BoxShape.circle,
+      ),
+      child: const Icon(
+        Icons.camera_alt,
+        color: Colors.white,
+        size: _cameraIconSize,
+      ),
+    );
+  }
+
+  /// 안내 텍스트 위젯 구성
+  Widget _buildInstructionText() {
+    return Text(
+      _tapToChangeText,
+      style: TextStyle(
+        fontSize: _instructionTextFontSize,
+        color: Colors.grey[600],
+      ),
+    );
+  }
+
+  /// 로딩 인디케이터 위젯 구성
+  Widget _buildLoadingIndicator() {
+    if (!_isLoading) return const SizedBox.shrink();
+
+    return const Padding(
+      padding: EdgeInsets.only(top: _loadingIndicatorSpacing),
+      child: CircularProgressIndicator(),
+    );
+  }
+
+  /// 메인 콘텐츠 구성
+  Widget _buildMainContent(UserProvider userProvider) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildProfileImage(userProvider),
+          const SizedBox(height: _instructionTextSpacing),
+          _buildInstructionText(),
+          _buildLoadingIndicator(),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final userProvider = Provider.of<UserProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
-            ? AppColors.darkSurface
-            : AppColors.primary,
-        title: Text(
-          "Change Profile Picture",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // 현재 프로필 이미지 표시
-            GestureDetector(
-              onTap: _isLoading ? null : _pickAndUploadProfileImage,
-              child: Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  CircleAvatar(
-                    radius: 80,
-                    backgroundImage: userProvider.profileImage.isNotEmpty
-                        ? NetworkImage(userProvider.profileImage)
-                        : null,
-                    backgroundColor: Colors.grey[300],
-                    child: userProvider.profileImage.isEmpty
-                        ? Icon(Icons.person, size: 80, color: Colors.grey[600])
-                        : null,
-                  ),
-                  if (!_isLoading)
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.camera_alt,
-                        color: Colors.white,
-                        size: 24,
-                      ),
-                    ),
-                ],
-              ),
-            ),
-
-            SizedBox(height: 30),
-
-            Text(
-              "Tap to change profile picture",
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
-            ),
-
-            if (_isLoading)
-              Padding(
-                padding: EdgeInsets.only(top: 20),
-                child: CircularProgressIndicator(),
-              ),
-          ],
-        ),
-      ),
+      appBar: _buildAppBar(),
+      body: _buildMainContent(userProvider),
     );
   }
 }

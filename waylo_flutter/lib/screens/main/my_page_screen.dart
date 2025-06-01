@@ -12,6 +12,28 @@ class MyPageScreenPage extends StatefulWidget {
 }
 
 class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerProviderStateMixin {
+  // 텍스트 상수들
+  static const String _mapTabText = "Map";
+  static const String _albumTabText = "Album";
+
+  // 폰트 크기 상수들
+  static const double _usernameFontSize = 20;
+
+  // 크기 상수들
+  static const double _toolbarHeight = 30;
+  static const int _tabCount = 2;
+
+  // 탭 인덱스 상수들
+  static const int _mapTabIndex = 0;
+  static const int _albumTabIndex = 1;
+
+  // 색상 투명도 상수들
+  static const double _unselectedLabelOpacity = 0.7; // Colors.white70에 해당
+  static const double _loadingOverlayOpacity = 0.45; // Colors.black45에 해당
+
+  // 물리 효과 상수
+  static const ScrollPhysics _tabBarPhysics = NeverScrollableScrollPhysics();
+
   late TabController _tabController;
   bool _isCreatingFeed = false;
 
@@ -21,7 +43,7 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _tabCount, vsync: this);
     _tabController.addListener(_handleTabChange);
   }
 
@@ -43,7 +65,7 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
   void _handleAddButtonClick() {
     if (_isCreatingFeed) return;
 
-    if (_tabController.index == 0) {
+    if (_tabController.index == _mapTabIndex) {
       mapContentKey.currentState?.createFeed();
     } else {
       albumContentKey.currentState?.openWidgetSelection();
@@ -65,7 +87,7 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
   AppBar _buildAppBar() {
     return AppBar(
       automaticallyImplyLeading: false,
-      toolbarHeight: 30,
+      toolbarHeight: _toolbarHeight,
       backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
           ? AppColors.darkSurface
           : AppColors.primary,
@@ -73,13 +95,17 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
         builder: (context, userProvider, child) {
           return Text(
             "${userProvider.username}",
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+            style: const TextStyle(
+              fontSize: _usernameFontSize,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           );
         },
       ),
       actions: [
         IconButton(
-          icon: Icon(Icons.add, color: Colors.white),
+          icon: const Icon(Icons.add, color: Colors.white),
           onPressed: _isCreatingFeed ? null : _handleAddButtonClick,
         ),
       ],
@@ -87,10 +113,10 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
         controller: _tabController,
         indicatorColor: Colors.white,
         labelColor: Colors.white,
-        unselectedLabelColor: Colors.white70,
-        tabs: [
-          Tab(text: "Map"),
-          Tab(text: "Album"),
+        unselectedLabelColor: Colors.white.withOpacity(_unselectedLabelOpacity),
+        tabs: const [
+          Tab(text: _mapTabText),
+          Tab(text: _albumTabText),
         ],
       ),
       centerTitle: true,
@@ -110,7 +136,7 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
   /// 탭 뷰 구성
   Widget _buildTabBarView() {
     return TabBarView(
-      physics: NeverScrollableScrollPhysics(),
+      physics: _tabBarPhysics,
       controller: _tabController,
       children: [
         MyMapContentWidget(
@@ -127,8 +153,8 @@ class _MyPageScreenPageState extends State<MyPageScreenPage> with SingleTickerPr
   /// 로딩 오버레이 위젯
   Widget _buildLoadingOverlay() {
     return Container(
-      color: Colors.black45,
-      child: Center(
+      color: Colors.black.withOpacity(_loadingOverlayOpacity),
+      child: const Center(
         child: CircularProgressIndicator(),
       ),
     );

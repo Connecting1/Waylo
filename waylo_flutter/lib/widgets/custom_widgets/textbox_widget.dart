@@ -326,6 +326,8 @@ class _TextBoxWidgetState extends State<TextBoxWidget> {
                 ),
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
+                fillColor: Colors.transparent,
+                filled: true,
               ),
               onEditingComplete: () {
                 _saveText();

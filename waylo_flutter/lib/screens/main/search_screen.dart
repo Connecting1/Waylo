@@ -19,6 +19,81 @@ class SearchScreenPage extends StatefulWidget {
 }
 
 class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerProviderStateMixin {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Search & Friends";
+  static const String _friendRequestsTabPrefix = "Friend Requests (";
+  static const String _myFriendsTabPrefix = "My Friends (";
+  static const String _tabSuffix = ")";
+  static const String _searchHintText = "Search by username";
+  static const String _noFriendRequestsTitle = "No friend requests";
+  static const String _noFriendsTitle = "No friends yet";
+  static const String _searchPromptText = "Search for users to add friends";
+  static const String _friendRequestSubtitle = "Friend request";
+  static const String _friendsSincePrefix = "Friends since ";
+  static const String _searchPromptMessage = "Enter a username to search";
+  static const String _noResultsMessage = "No results found";
+  static const String _privateAccountText = "Private account";
+  static const String _publicAccountText = "Public account";
+  static const String _friendsStatusText = "Friends";
+  static const String _requestSentText = "Request sent";
+  static const String _requestReceivedText = "Request received";
+  static const String _unknownUserText = "Unknown";
+
+  // 에러 메시지 상수들
+  static const String _sendRequestFailedPrefix = "Failed to send friend request: ";
+  static const String _sendRequestSuccessMessage = "Friend request has been sent";
+  static const String _sendRequestErrorMessage = "An error occurred while sending friend request";
+  static const String _acceptRequestFailedPrefix = "Failed to accept friend request: ";
+  static const String _acceptRequestSuccessMessage = "Friend request accepted";
+  static const String _acceptRequestErrorMessage = "An error occurred while accepting friend request";
+  static const String _rejectRequestFailedPrefix = "Failed to reject friend request: ";
+  static const String _rejectRequestSuccessMessage = "Friend request rejected";
+  static const String _rejectRequestErrorMessage = "An error occurred while rejecting friend request";
+  static const String _createChatFailedMessage = "Failed to create chat room";
+  static const String _createChatErrorMessage = "An error occurred while creating chat room";
+
+  // API 키 상수들
+  static const String _errorKey = 'error';
+  static const String _friendsKey = 'friends';
+  static const String _requestsKey = 'requests';
+  static const String _roomIdKey = 'room_id';
+  static const String _usernameKey = 'username';
+  static const String _profileImageKey = 'profile_image';
+  static const String _idKey = 'id';
+  static const String _friendshipDateKey = 'friendship_date';
+  static const String _fromUserIdKey = 'from_user_id';
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 16;
+  static const double _emptyStateIconSize = 48;
+  static const double _emptyStateTitleFontSize = 16;
+  static const double _emptyStateSubtitleFontSize = 14;
+
+  // 크기 상수들
+  static const double _toolbarHeight = 40;
+  static const int _debounceMilliseconds = 300;
+  static const int _tabCount = 2;
+  static const double _searchFieldBorderRadius = 25;
+  static const double _searchFieldPadding = 16.0;
+  static const double _searchFieldVerticalPadding = 12;
+  static const double _searchFieldHorizontalPadding = 16;
+  static const double _cardHorizontalMargin = 16;
+  static const double _cardVerticalMargin = 8;
+  static const double _emptyStateSpacing = 16;
+  static const double _emptyStateSubSpacing = 8;
+  static const double _loadingIndicatorSize = 24;
+  static const double _loadingIndicatorStroke = 2;
+
+  // 날짜 포맷팅 상수들
+  static const String _datePadCharacter = '0';
+  static const int _datePadLength = 2;
+
+  // 색상 투명도 상수들
+  static const double _unselectedTabOpacity = 0.7; // Colors.white70
+
+  // 계정 가시성 상수들
+  static const String _privateVisibility = 'private';
+
   final TextEditingController _searchController = TextEditingController();
   List<SearchUser> _searchResults = [];
   List<FriendRequest> _friendRequests = [];
@@ -41,7 +116,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   void initState() {
     super.initState();
     _searchController.addListener(_onSearchChanged);
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: _tabCount, vsync: this);
     _loadCurrentUserId();
     _loadFriendRequests();
     _loadFriendsList();
@@ -76,9 +151,9 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
 
       final response = await FriendApi.getFriends(_currentUserId!);
 
-      if (response is Map && response.containsKey('friends')) {
+      if (response is Map && response.containsKey(_friendsKey)) {
         setState(() {
-          _myFriendsList = List<Map<String, dynamic>>.from(response['friends']);
+          _myFriendsList = List<Map<String, dynamic>>.from(response[_friendsKey]);
         });
       }
     } catch (e) {
@@ -99,10 +174,10 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
 
     try {
       final friendsResponse = await FriendApi.getFriends(_currentUserId!);
-      if (friendsResponse is Map && friendsResponse.containsKey('friends')) {
+      if (friendsResponse is Map && friendsResponse.containsKey(_friendsKey)) {
         setState(() {
-          _myFriendIds = List<Map<String, dynamic>>.from(friendsResponse['friends'])
-              .map((friend) => friend['id'] as String)
+          _myFriendIds = List<Map<String, dynamic>>.from(friendsResponse[_friendsKey])
+              .map((friend) => friend[_idKey] as String)
               .toList();
         });
       }
@@ -113,7 +188,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       });
 
       final requests = _friendRequests
-          .map((req) => {'from_user_id': req.fromUserId, 'id': req.id})
+          .map((req) => {_fromUserIdKey: req.fromUserId, _idKey: req.id})
           .toList();
       setState(() {
         _myReceivedRequests = requests;
@@ -132,15 +207,15 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
     try {
       final response = await FriendApi.getFriendRequests();
 
-      if (response is Map && response.containsKey('requests')) {
-        final List<dynamic> requestsList = response['requests'];
+      if (response is Map && response.containsKey(_requestsKey)) {
+        final List<dynamic> requestsList = response[_requestsKey];
         setState(() {
           _friendRequests = requestsList
               .map((json) => FriendRequest.fromJson(json))
               .toList();
 
           _myReceivedRequests = _friendRequests
-              .map((req) => {'from_user_id': req.fromUserId, 'id': req.id})
+              .map((req) => {_fromUserIdKey: req.fromUserId, _idKey: req.id})
               .toList();
         });
       }
@@ -157,7 +232,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   void _onSearchChanged() {
     if (_debounceTimer?.isActive ?? false) _debounceTimer!.cancel();
 
-    _debounceTimer = Timer(Duration(milliseconds: 300), () {
+    _debounceTimer = Timer(const Duration(milliseconds: _debounceMilliseconds), () {
       final searchText = _searchController.text.trim();
       if (searchText.isNotEmpty) {
         _searchUsers(searchText);
@@ -180,7 +255,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
     try {
       final response = await UserApi.searchUsers(prefix);
 
-      if (response is Map && response.containsKey("error")) {
+      if (response is Map && response.containsKey(_errorKey)) {
         setState(() {
           _searchResults = [];
           _isLoading = false;
@@ -227,20 +302,20 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
         toUserId: toUserId,
       );
 
-      if (response.containsKey('error')) {
+      if (response.containsKey(_errorKey)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to send friend request: ${response['error']}")),
+          SnackBar(content: Text("$_sendRequestFailedPrefix${response[_errorKey]}")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Friend request has been sent")),
+          const SnackBar(content: Text(_sendRequestSuccessMessage)),
         );
 
         await _loadFriendStatusData();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred while sending friend request")),
+        const SnackBar(content: Text(_sendRequestErrorMessage)),
       );
     } finally {
       setState(() {
@@ -254,13 +329,13 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
     try {
       final response = await FriendApi.acceptFriendRequest(requestId: requestId);
 
-      if (response.containsKey('error')) {
+      if (response.containsKey(_errorKey)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to accept friend request: ${response['error']}")),
+          SnackBar(content: Text("$_acceptRequestFailedPrefix${response[_errorKey]}")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Friend request accepted")),
+          const SnackBar(content: Text(_acceptRequestSuccessMessage)),
         );
 
         await _loadFriendRequests();
@@ -269,7 +344,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred while accepting friend request")),
+        const SnackBar(content: Text(_acceptRequestErrorMessage)),
       );
     }
   }
@@ -279,20 +354,20 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
     try {
       final response = await FriendApi.rejectFriendRequest(requestId: requestId);
 
-      if (response.containsKey('error')) {
+      if (response.containsKey(_errorKey)) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Failed to reject friend request: ${response['error']}")),
+          SnackBar(content: Text("$_rejectRequestFailedPrefix${response[_errorKey]}")),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Friend request rejected")),
+          const SnackBar(content: Text(_rejectRequestSuccessMessage)),
         );
 
         await _loadFriendRequests();
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred while rejecting friend request")),
+        const SnackBar(content: Text(_rejectRequestErrorMessage)),
       );
     }
   }
@@ -310,27 +385,27 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   /// 채팅방 생성 및 이동
   Future<void> _startChat(Map<String, dynamic> friend) async {
     try {
-      final response = await ChatApi.createChatRoom(friendId: friend['id']);
+      final response = await ChatApi.createChatRoom(friendId: friend[_idKey]);
 
-      if (!response.containsKey('error')) {
+      if (!response.containsKey(_errorKey)) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ChatRoomScreen(
-              roomId: response['room_id'],
-              friendName: friend['username'] ?? 'Unknown',
-              friendProfileImage: _getFullProfileImageUrl(friend['profile_image'] ?? ''),
+              roomId: response[_roomIdKey],
+              friendName: friend[_usernameKey] ?? _unknownUserText,
+              friendProfileImage: _getFullProfileImageUrl(friend[_profileImageKey] ?? ''),
             ),
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response['error'] ?? 'Failed to create chat room')),
+          SnackBar(content: Text(response[_errorKey] ?? _createChatFailedMessage)),
         );
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred while creating chat room')),
+        const SnackBar(content: Text(_createChatErrorMessage)),
       );
     }
   }
@@ -347,7 +422,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
 
   /// 날짜 포맷팅
   String _formatDate(DateTime date) {
-    return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    return "${date.year}-${date.month.toString().padLeft(_datePadLength, _datePadCharacter)}-${date.day.toString().padLeft(_datePadLength, _datePadCharacter)}";
   }
 
   @override
@@ -357,7 +432,7 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       body: Column(
         children: [
           _buildSearchField(),
-          if (_isLoading) Center(child: CircularProgressIndicator()),
+          if (_isLoading) const Center(child: CircularProgressIndicator()),
           Expanded(child: _buildContent()),
         ],
       ),
@@ -367,19 +442,23 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   /// AppBar 구성
   AppBar _buildAppBar() {
     return AppBar(
-      toolbarHeight: 40,
+      toolbarHeight: _toolbarHeight,
       automaticallyImplyLeading: false,
       backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
           ? AppColors.darkSurface
           : AppColors.primary,
-      title: Text(
-        "Search & Friends",
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+      title: const Text(
+        _appBarTitle,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: _appBarTitleFontSize,
+        ),
       ),
       centerTitle: true,
       actions: [
         IconButton(
-          icon: Icon(Icons.refresh, color: Colors.white),
+          icon: const Icon(Icons.refresh, color: Colors.white),
           onPressed: () {
             _loadFriendRequests();
             _loadFriendsList();
@@ -397,15 +476,15 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       controller: _tabController,
       indicatorColor: Colors.white,
       labelColor: Colors.white,
-      unselectedLabelColor: Colors.white70,
+      unselectedLabelColor: Colors.white.withOpacity(_unselectedTabOpacity),
       tabs: [
         Tab(
-          icon: Icon(Icons.person_add_alt),
-          text: "Friend Requests (${_friendRequests.length})",
+          icon: const Icon(Icons.person_add_alt),
+          text: "$_friendRequestsTabPrefix${_friendRequests.length}$_tabSuffix",
         ),
         Tab(
-          icon: Icon(Icons.people),
-          text: "My Friends (${_myFriendsList.length})",
+          icon: const Icon(Icons.people),
+          text: "$_myFriendsTabPrefix${_myFriendsList.length}$_tabSuffix",
         ),
       ],
     );
@@ -414,21 +493,24 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   /// 검색 입력 필드
   Widget _buildSearchField() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(_searchFieldPadding),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.grey[100],
-          borderRadius: BorderRadius.circular(25),
+          borderRadius: BorderRadius.circular(_searchFieldBorderRadius),
         ),
         child: TextField(
           controller: _searchController,
-          decoration: InputDecoration(
-            hintText: 'Search by username',
+          decoration: const InputDecoration(
+            hintText: _searchHintText,
             prefixIcon: Icon(Icons.search),
             border: InputBorder.none,
             enabledBorder: InputBorder.none,
             focusedBorder: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            contentPadding: EdgeInsets.symmetric(
+              vertical: _searchFieldVerticalPadding,
+              horizontal: _searchFieldHorizontalPadding,
+            ),
           ),
           textInputAction: TextInputAction.search,
         ),
@@ -454,14 +536,14 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   /// 친구 요청 목록
   Widget _buildFriendRequestsList() {
     if (_isLoadingFriendRequests) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_friendRequests.isEmpty) {
       return _buildEmptyState(
         icon: Icons.person_add_disabled,
-        title: 'No friend requests',
-        subtitle: 'Search for users to add friends',
+        title: _noFriendRequestsTitle,
+        subtitle: _searchPromptText,
       );
     }
 
@@ -477,14 +559,14 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   /// 친구 목록
   Widget _buildFriendsList() {
     if (_isLoadingFriends) {
-      return Center(child: CircularProgressIndicator());
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_myFriendsList.isEmpty) {
       return _buildEmptyState(
         icon: Icons.people_alt_outlined,
-        title: 'No friends yet',
-        subtitle: 'Search for users to add friends',
+        title: _noFriendsTitle,
+        subtitle: _searchPromptText,
       );
     }
 
@@ -503,11 +585,23 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 48, color: Colors.grey),
-          SizedBox(height: 16),
-          Text(title, style: TextStyle(fontSize: 16, color: Colors.grey[600])),
-          SizedBox(height: 8),
-          Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey)),
+          Icon(icon, size: _emptyStateIconSize, color: Colors.grey),
+          const SizedBox(height: _emptyStateSpacing),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: _emptyStateTitleFontSize,
+              color: Colors.grey[600],
+            ),
+          ),
+          const SizedBox(height: _emptyStateSubSpacing),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontSize: _emptyStateSubtitleFontSize,
+              color: Colors.grey,
+            ),
+          ),
         ],
       ),
     );
@@ -516,20 +610,23 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
   /// 친구 요청 아이템
   Widget _buildFriendRequestItem(FriendRequest request) {
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: _cardHorizontalMargin,
+        vertical: _cardVerticalMargin,
+      ),
       child: ListTile(
         leading: _buildAvatar(request.fullProfileImageUrl),
         title: Text(request.fromUserName),
-        subtitle: Text('Friend request'),
+        subtitle: const Text(_friendRequestSubtitle),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.check_circle, color: Colors.green),
+              icon: const Icon(Icons.check_circle, color: Colors.green),
               onPressed: () => _acceptFriendRequest(request.id),
             ),
             IconButton(
-              icon: Icon(Icons.cancel, color: Colors.red),
+              icon: const Icon(Icons.cancel, color: Colors.red),
               onPressed: () => _rejectFriendRequest(request.id),
             ),
           ],
@@ -541,30 +638,33 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
 
   /// 친구 아이템
   Widget _buildFriendItem(Map<String, dynamic> friend) {
-    final String fullProfileImageUrl = _getFullProfileImageUrl(friend['profile_image'] ?? '');
-    final DateTime friendshipDate = friend['friendship_date'] != null
-        ? DateTime.parse(friend['friendship_date'])
+    final String fullProfileImageUrl = _getFullProfileImageUrl(friend[_profileImageKey] ?? '');
+    final DateTime friendshipDate = friend[_friendshipDateKey] != null
+        ? DateTime.parse(friend[_friendshipDateKey])
         : DateTime.now();
 
     return Card(
-      margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: _cardHorizontalMargin,
+        vertical: _cardVerticalMargin,
+      ),
       child: ListTile(
         leading: _buildAvatar(fullProfileImageUrl),
-        title: Text(friend['username'] ?? 'Unknown'),
-        subtitle: Text('Friends since ${_formatDate(friendshipDate)}'),
+        title: Text(friend[_usernameKey] ?? _unknownUserText),
+        subtitle: Text('$_friendsSincePrefix${_formatDate(friendshipDate)}'),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: Icon(Icons.chat, color: AppColors.primary),
+              icon: const Icon(Icons.chat, color: AppColors.primary),
               onPressed: () => _startChat(friend),
             ),
-            Icon(Icons.people, color: Colors.green),
+            const Icon(Icons.people, color: Colors.green),
           ],
         ),
         onTap: () => _navigateToProfile(
-          friend['id'],
-          friend['username'] ?? 'Unknown',
+          friend[_idKey],
+          friend[_usernameKey] ?? _unknownUserText,
           fullProfileImageUrl,
         ),
       ),
@@ -578,11 +678,11 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
     }
 
     if (!_hasSearched) {
-      return Center(child: Text('Enter a username to search'));
+      return const Center(child: Text(_searchPromptMessage));
     }
 
     if (_searchResults.isEmpty) {
-      return Center(child: Text('No results found'));
+      return const Center(child: Text(_noResultsMessage));
     }
 
     return ListView.builder(
@@ -606,19 +706,19 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
       title: Text(user.username),
       subtitle: Text(
         statusInfo['text'].isEmpty
-            ? (user.accountVisibility == 'private' ? 'Private account' : 'Public account')
+            ? (user.accountVisibility == _privateVisibility ? _privateAccountText : _publicAccountText)
             : statusInfo['text'],
         style: TextStyle(
           color: statusInfo['text'].isEmpty
-              ? (user.accountVisibility == 'private' ? Colors.grey : Colors.green[700])
+              ? (user.accountVisibility == _privateVisibility ? Colors.grey : Colors.green[700])
               : statusInfo['color'],
         ),
       ),
       trailing: isPending
-          ? SizedBox(
-        width: 24,
-        height: 24,
-        child: CircularProgressIndicator(strokeWidth: 2),
+          ? const SizedBox(
+        width: _loadingIndicatorSize,
+        height: _loadingIndicatorSize,
+        child: CircularProgressIndicator(strokeWidth: _loadingIndicatorStroke),
       )
           : IconButton(
         icon: Icon(statusInfo['icon'], color: statusInfo['color']),
@@ -635,21 +735,21 @@ class _SearchScreenPageState extends State<SearchScreenPage> with SingleTickerPr
         return {
           'icon': Icons.people,
           'color': Colors.green,
-          'text': 'Friends',
+          'text': _friendsStatusText,
           'canSendRequest': false,
         };
       case FriendStatus.requestSent:
         return {
           'icon': Icons.pending,
           'color': Colors.orange,
-          'text': 'Request sent',
+          'text': _requestSentText,
           'canSendRequest': false,
         };
       case FriendStatus.requestReceived:
         return {
           'icon': Icons.person_add_alt_1,
           'color': Colors.blue,
-          'text': 'Request received',
+          'text': _requestReceivedText,
           'canSendRequest': false,
         };
       case FriendStatus.notFriend:

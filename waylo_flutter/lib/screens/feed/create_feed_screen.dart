@@ -29,10 +29,80 @@ class FeedCreatePage extends StatefulWidget {
 }
 
 class _FeedCreatePageState extends State<FeedCreatePage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = 'Create Post';
+  static const String _postButtonText = 'Post';
+  static const String _captionHintText = 'Write a caption';
+  static const String _photoDateTitle = 'Photo Date';
+  static const String _fetchingLocationText = 'Fetching location';
+  static const String _noLocationSelectedText = 'No location selected';
+  static const String _unknownLocationText = 'Unknown Location';
+  static const String _editCoordinatesTitle = 'Edit Coordinates';
+  static const String _latitudeLabel = 'Latitude (-90 to 90)';
+  static const String _longitudeLabel = 'Longitude (-180 to 180)';
+  static const String _cancelButtonText = 'Cancel';
+  static const String _saveButtonText = 'Save';
+  static const String _photoDateOptionsTitle = 'Photo Date Options';
+  static const String _setDateText = 'Set Date';
+  static const String _noDateText = 'No Date';
+  static const String _noDateInfoText = 'No date information';
+  static const String _visibilityTitle = 'Who can see this?';
+  static const String _publicVisibility = 'public';
+  static const String _privateVisibility = 'private';
+
+  // 에러 메시지 상수들
+  static const String _locationDataMissingError = 'Location data or access token is missing';
+  static const String _latitudeRangeError = 'Latitude must be between -90 and 90';
+  static const String _longitudeRangeError = 'Longitude must be between -180 and 180';
+  static const String _invalidCoordinateError = 'Invalid coordinate format';
+  static const String _selectLocationError = 'Please select a location.';
+  static const String _uploadFailedPrefix = 'Failed to upload post: ';
+  static const String _uploadErrorPrefix = 'Something went wrong while uploading the post: ';
+
+  // 기본값 상수들
+  static const String _unknownCountryCode = 'UNKNOWN';
+  static const String _defaultVisibility = 'public';
+
+  // API 관련 상수들
+  static const String _mapboxGeocodeUrl = 'https://api.mapbox.com/geocoding/v5/mapbox.places/';
+  static const String _geocodeUrlSuffix = '.json?access_token=';
+  static const String _geocodeTypeCountry = '&types=country';
+  static const String _featuresKey = 'features';
+  static const String _propertiesKey = 'properties';
+  static const String _shortCodeKey = 'short_code';
+  static const String _placeNameKey = 'place_name';
+  static const String _locationNameKey = 'location_name';
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 16;
+  static const double _coordinateSubtitleFontSize = 12;
+
+  // 크기 상수들
+  static const double _imagePreviewHeight = 300;
+  static const double _formContentPadding = 16.0;
+  static const double _bottomSpacing = 40;
+  static const double _dateFieldSpacing = 10;
+
+  // 좌표 관련 상수들
+  static const int _coordinateDecimalPlaces = 6;
+  static const double _minLatitude = -90;
+  static const double _maxLatitude = 90;
+  static const double _minLongitude = -180;
+  static const double _maxLongitude = 180;
+  static const int _longitudeMaxLength = 9;
+
+  // 날짜 관련 상수들
+  static const String _dateFormat = 'dd/MM/yyyy';
+  static const int _minYear = 2000;
+
+  // 폼 필드 상수들
+  static const int _descriptionMaxLines = 5;
+  static const int _descriptionMinLines = 3;
+
   final TextEditingController _descriptionController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-  String _visibility = 'public';
+  String _visibility = _defaultVisibility;
   bool _isLoading = false;
   bool _isLocationLoading = false;
 
@@ -82,15 +152,15 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     if (widget.accessToken == null) return;
 
     try {
-      String countryUrl = "https://api.mapbox.com/geocoding/v5/mapbox.places/$longitude,$latitude.json?access_token=${widget.accessToken}&types=country";
+      String countryUrl = "$_mapboxGeocodeUrl$longitude,$latitude$_geocodeUrlSuffix${widget.accessToken}$_geocodeTypeCountry";
       final countryResponse = await http.get(Uri.parse(countryUrl));
 
       if (countryResponse.statusCode == 200) {
         var data = jsonDecode(countryResponse.body);
-        if (data["features"].isNotEmpty) {
+        if (data[_featuresKey].isNotEmpty) {
           setState(() {
-            _countryCode = data["features"][0]["properties"]["short_code"]?.toUpperCase() ?? 'UNKNOWN';
-            _locationName = data["features"][0]["place_name"] ?? 'Unknown Location';
+            _countryCode = data[_featuresKey][0][_propertiesKey][_shortCodeKey]?.toUpperCase() ?? _unknownCountryCode;
+            _locationName = data[_featuresKey][0][_placeNameKey] ?? _unknownLocationText;
           });
         } else {
           _setUnknownLocation();
@@ -106,8 +176,8 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   /// 위치 정보를 알 수 없을 때 기본값 설정
   void _setUnknownLocation() {
     setState(() {
-      _countryCode = 'UNKNOWN';
-      _locationName = 'Unknown Location';
+      _countryCode = _unknownCountryCode;
+      _locationName = _unknownLocationText;
     });
   }
 
@@ -115,7 +185,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   void _editLocationOnMap() async {
     if (_latitude == null || _longitude == null || widget.accessToken == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location data or access token is missing')),
+        const SnackBar(content: Text(_locationDataMissingError)),
       );
       return;
     }
@@ -151,47 +221,47 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   /// 좌표 직접 입력 다이얼로그
   void _editCoordinates() {
     final latController = TextEditingController(
-      text: _latitude?.toStringAsFixed(6) ?? '',
+      text: _latitude?.toStringAsFixed(_coordinateDecimalPlaces) ?? '',
     );
     final lngController = TextEditingController(
-      text: _longitude?.toStringAsFixed(6) ?? '',
+      text: _longitude?.toStringAsFixed(_coordinateDecimalPlaces) ?? '',
     );
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Edit Coordinates'),
+          title: const Text(_editCoordinatesTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: latController,
-                decoration: InputDecoration(
-                  labelText: 'Latitude (-90 to 90)',
+                decoration: const InputDecoration(
+                  labelText: _latitudeLabel,
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true, signed: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: _dateFieldSpacing),
               TextField(
                 controller: lngController,
-                decoration: InputDecoration(
-                  labelText: 'Longitude (-180 to 180)',
+                decoration: const InputDecoration(
+                  labelText: _longitudeLabel,
                   border: OutlineInputBorder(),
                 ),
-                keyboardType: TextInputType.numberWithOptions(decimal: true, signed: true),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
               ),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
+              child: const Text(_cancelButtonText),
             ),
             TextButton(
               onPressed: () => _saveCoordinates(latController.text, lngController.text),
-              child: Text('Save'),
+              child: const Text(_saveButtonText),
             ),
           ],
         );
@@ -205,15 +275,15 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       double lat = double.parse(latText);
       double lng = double.parse(lngText);
 
-      if (lat < -90 || lat > 90) {
+      if (lat < _minLatitude || lat > _maxLatitude) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Latitude must be between -90 and 90')),
+          const SnackBar(content: Text(_latitudeRangeError)),
         );
         return;
       }
-      if (lng < -180 || lng > 180) {
+      if (lng < _minLongitude || lng > _maxLongitude) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Longitude must be between -180 and 180')),
+          const SnackBar(content: Text(_longitudeRangeError)),
         );
         return;
       }
@@ -233,7 +303,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Invalid coordinate format')),
+        const SnackBar(content: Text(_invalidCoordinateError)),
       );
     }
   }
@@ -244,19 +314,19 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Photo Date Options'),
+          title: const Text(_photoDateOptionsTitle),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
-                leading: Icon(Icons.calendar_today),
-                title: Text('Set Date'),
+                leading: const Icon(Icons.calendar_today),
+                title: const Text(_setDateText),
                 onTap: () => _showDatePicker(),
               ),
-              Divider(),
+              const Divider(),
               ListTile(
-                leading: Icon(Icons.clear),
-                title: Text('No Date'),
+                leading: const Icon(Icons.clear),
+                title: const Text(_noDateText),
                 onTap: () {
                   Navigator.pop(context);
                   setState(() {
@@ -277,7 +347,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _photoTakenAt ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      firstDate: DateTime(_minYear),
       lastDate: DateTime.now(),
     );
 
@@ -297,7 +367,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     if (!_formKey.currentState!.validate()) return;
     if (_latitude == null || _longitude == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please select a location.'))
+          const SnackBar(content: Text(_selectLocationError))
       );
       return;
     }
@@ -310,7 +380,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       final feedProvider = Provider.of<FeedProvider>(context, listen: false);
 
       // 좌표 포맷팅 - 서버 요구사항에 맞게 조정
-      double formattedLatitude = double.parse(_latitude!.toStringAsFixed(6));
+      double formattedLatitude = double.parse(_latitude!.toStringAsFixed(_coordinateDecimalPlaces));
       double formattedLongitude = _formatLongitude(_longitude!);
 
       String? photoTakenAtStr;
@@ -327,7 +397,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
         countryCode: _countryCode,
         photoTakenAt: photoTakenAtStr,
         extraData: {
-          'location_name': _locationName,
+          _locationNameKey: _locationName,
         },
       );
 
@@ -335,7 +405,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
         Navigator.pop(context, true);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to upload post: ${feedProvider.errorMessage}'))
+            SnackBar(content: Text('$_uploadFailedPrefix${feedProvider.errorMessage}'))
         );
         setState(() {
           _isLoading = false;
@@ -343,7 +413,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Something went wrong while uploading the post: $e'))
+          SnackBar(content: Text('$_uploadErrorPrefix$e'))
       );
       setState(() {
         _isLoading = false;
@@ -354,9 +424,9 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   /// 경도 포맷팅 - 9자리 제한
   double _formatLongitude(double longitude) {
     String longStr = longitude.toString();
-    if (longStr.replaceAll('.', '').length > 9) {
+    if (longStr.replaceAll('.', '').length > _longitudeMaxLength) {
       int integerLength = longStr.split('.')[0].length;
-      int decimalPlaces = 9 - integerLength;
+      int decimalPlaces = _longitudeMaxLength - integerLength;
       if (decimalPlaces > 0) {
         return double.parse(longitude.toStringAsFixed(decimalPlaces));
       } else {
@@ -372,7 +442,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
     return Scaffold(
       appBar: _buildAppBar(),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -394,19 +464,23 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
       backgroundColor: Provider.of<ThemeProvider>(context).isDarkMode
           ? AppColors.darkSurface
           : AppColors.primary,
-      title: Text(
-        'Create Post',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+      title: const Text(
+        _appBarTitle,
+        style: TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: _appBarTitleFontSize,
+        ),
       ),
       leading: IconButton(
-        icon: Icon(Icons.arrow_back, color: Colors.white),
+        icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context),
       ),
       actions: [
         TextButton(
           onPressed: _isLoading ? null : _createFeed,
-          child: Text(
-            'Post',
+          child: const Text(
+            _postButtonText,
             style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -422,7 +496,7 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   Widget _buildImagePreview() {
     return Container(
       width: double.infinity,
-      height: 300,
+      height: _imagePreviewHeight,
       color: Colors.grey[200],
       child: Image.file(
         widget.imageFile,
@@ -434,18 +508,18 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   /// 폼 내용 위젯
   Widget _buildFormContent() {
     return Padding(
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(_formContentPadding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildDescriptionField(),
-          Divider(),
+          const Divider(),
           _buildDateSection(),
-          Divider(),
+          const Divider(),
           _buildLocationSection(),
-          Divider(),
+          const Divider(),
           _buildVisibilitySection(),
-          SizedBox(height: 40),
+          const SizedBox(height: _bottomSpacing),
         ],
       ),
     );
@@ -455,12 +529,12 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   Widget _buildDescriptionField() {
     return TextFormField(
       controller: _descriptionController,
-      decoration: InputDecoration(
-        hintText: 'Write a caption',
+      decoration: const InputDecoration(
+        hintText: _captionHintText,
         border: InputBorder.none,
       ),
-      maxLines: 5,
-      minLines: 3,
+      maxLines: _descriptionMaxLines,
+      minLines: _descriptionMinLines,
       validator: (value) => null,
     );
   }
@@ -469,15 +543,15 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   Widget _buildDateSection() {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(Icons.calendar_today),
-      title: Text('Photo Date'),
+      leading: const Icon(Icons.calendar_today),
+      title: const Text(_photoDateTitle),
       subtitle: Text(
         _photoTakenAt != null
-            ? DateFormat('yyyy-MM-dd').format(_photoTakenAt!)
-            : 'No date information',
+            ? DateFormat(_dateFormat).format(_photoTakenAt!)
+            : _noDateInfoText,
       ),
       trailing: IconButton(
-        icon: Icon(Icons.edit),
+        icon: const Icon(Icons.edit),
         onPressed: () => _selectDate(context),
       ),
     );
@@ -487,23 +561,23 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   Widget _buildLocationSection() {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(Icons.location_on),
+      leading: const Icon(Icons.location_on),
       title: _isLocationLoading
-          ? Text('Fetching location')
-          : Text(_locationName ?? 'No location selected'),
+          ? const Text(_fetchingLocationText)
+          : Text(_locationName ?? _noLocationSelectedText),
       subtitle: Text(
-        'Latitude: ${_latitude?.toStringAsFixed(6) ?? 'N/A'}, Longitude: ${_longitude?.toStringAsFixed(6) ?? 'N/A'}',
-        style: TextStyle(fontSize: 12),
+        'Latitude: ${_latitude?.toStringAsFixed(_coordinateDecimalPlaces) ?? 'N/A'}, Longitude: ${_longitude?.toStringAsFixed(_coordinateDecimalPlaces) ?? 'N/A'}',
+        style: const TextStyle(fontSize: _coordinateSubtitleFontSize),
       ),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(Icons.edit),
+            icon: const Icon(Icons.edit),
             onPressed: _editCoordinates,
           ),
           IconButton(
-            icon: Icon(Icons.edit_location_alt),
+            icon: const Icon(Icons.edit_location_alt),
             onPressed: _editLocationOnMap,
           ),
         ],
@@ -515,19 +589,19 @@ class _FeedCreatePageState extends State<FeedCreatePage> {
   Widget _buildVisibilitySection() {
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: Icon(Icons.visibility),
-      title: Text('Who can see this?'),
+      leading: const Icon(Icons.visibility),
+      title: const Text(_visibilityTitle),
       trailing: DropdownButton<String>(
         value: _visibility,
         underline: Container(),
-        items: [
+        items: const [
           DropdownMenuItem(
-            value: 'public',
-            child: Text('public'),
+            value: _publicVisibility,
+            child: Text(_publicVisibility),
           ),
           DropdownMenuItem(
-            value: 'private',
-            child: Text('private'),
+            value: _privateVisibility,
+            child: Text(_privateVisibility),
           ),
         ],
         onChanged: (value) {

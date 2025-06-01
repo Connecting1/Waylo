@@ -12,6 +12,44 @@ class SignUpGenderPage extends StatefulWidget {
 }
 
 class _SignUpGenderPageState extends State<SignUpGenderPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Create account";
+  static const String _questionText = "What's your gender?";
+  static const String _dropdownHintText = "Select your gender";
+  static const String _nextButtonText = "Next";
+
+  // 성별 옵션 상수들
+  static const String _genderMale = "Male";
+  static const String _genderFemale = "Female";
+  static const String _genderNonBinary = "Non-binary";
+  static const String _genderOther = "Other";
+  static const String _genderPreferNotToSay = "Prefer not to say";
+
+  static const List<String> _genderOptions = [
+    _genderMale,
+    _genderFemale,
+    _genderNonBinary,
+    _genderOther,
+    _genderPreferNotToSay,
+  ];
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 15;
+  static const double _questionFontSize = 25;
+  static const double _hintFontSize = 16;
+  static const double _dropdownItemFontSize = 16;
+  static const double _buttonFontSize = 18;
+
+  // 크기 상수들
+  static const double _toolbarHeight = 56;
+  static const double _horizontalPadding = 20;
+  static const double _dropdownHeight = 60;
+  static const double _dropdownBorderRadius = 10;
+  static const double _dropdownHorizontalPadding = 20;
+  static const double _buttonTopSpacing = 30;
+  static const double _buttonWidth = 100;
+  static const double _buttonHeight = 50;
+
   String? _selectedGender;
   bool _isGenderSelected = false;
 
@@ -46,50 +84,56 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Create account",
+          _appBarTitle,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: _appBarTitleFontSize,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56,
+        toolbarHeight: _toolbarHeight,
       ),
       body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20),
+        padding: const EdgeInsets.only(
+          left: _horizontalPadding,
+          right: _horizontalPadding,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "What's your gender?",
+              _questionText,
               style: TextStyle(
-                fontSize: 25,
+                fontSize: _questionFontSize,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
             ),
             Container(
-              height: 60,
+              height: _dropdownHeight,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(_dropdownBorderRadius),
               ),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: _dropdownHorizontalPadding),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<String>(
                     value: _selectedGender,
                     hint: const Text(
-                      "Select your gender",
-                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                      _dropdownHintText,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: _hintFontSize,
+                      ),
                     ),
-                    items: ["Male", "Female", "Non-binary", "Other", "Prefer not to say"].map((String gender) {
+                    items: _genderOptions.map((String gender) {
                       return DropdownMenuItem<String>(
                         value: gender,
                         child: Text(
                           gender,
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: _dropdownItemFontSize),
                         ),
                       );
                     }).toList(),
@@ -99,18 +143,18 @@ class _SignUpGenderPageState extends State<SignUpGenderPage> {
                 ),
               ),
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: _buttonTopSpacing),
             Center(
               child: SizedBox(
-                width: 100,
-                height: 50,
+                width: _buttonWidth,
+                height: _buttonHeight,
                 child: ElevatedButton(
                   onPressed: _isGenderSelected ? () => _goToPasswordPage(context) : null,
                   style: ButtonStyles.formButtonStyle(context, isEnabled: _isGenderSelected),
                   child: const Text(
-                    "Next",
+                    _nextButtonText,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: _buttonFontSize,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

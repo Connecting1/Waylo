@@ -19,6 +19,31 @@ class SignInPage extends StatefulWidget {
 }
 
 class _SignInPageState extends State<SignInPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Sign In";
+  static const String _emailLabel = "Email";
+  static const String _passwordLabel = "Password";
+  static const String _loginButtonText = "Login";
+  static const String _loginFailedPrefix = "Login failed: ";
+  static const String _defaultLoginError = "Invalid email or password";
+  static const String _networkErrorMessage = "Network error: Unable to login";
+  static const String _userIdKey = "user_id";
+  static const String _authTokenKey = "auth_token";
+  static const String _errorKey = "error";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 15;
+  static const double _labelFontSize = 25;
+  static const double _buttonFontSize = 18;
+
+  // 크기 상수들
+  static const double _pageHorizontalPadding = 20;
+  static const double _inputSpacing = 15;
+  static const double _buttonTopSpacing = 30;
+  static const double _buttonWidth = 100;
+  static const double _buttonHeight = 50;
+  static const double _inputBorderRadius = 10;
+
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -33,15 +58,15 @@ class _SignInPageState extends State<SignInPage> {
     try {
       final response = await UserApi.loginUser(email, password);
 
-      if (response.containsKey("auth_token")) {
+      if (response.containsKey(_authTokenKey)) {
         // 인증 토큰 설정
-        provider.setAuthToken(response["auth_token"]);
+        provider.setAuthToken(response[_authTokenKey]);
         provider.setLoggedIn(true);
 
         // 사용자 ID 저장
-        if (response.containsKey("user_id")) {
+        if (response.containsKey(_userIdKey)) {
           SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString("user_id", response["user_id"]);
+          await prefs.setString(_userIdKey, response[_userIdKey]);
         }
 
         // 로그인 성공 후 데이터 초기화
@@ -58,14 +83,14 @@ class _SignInPageState extends State<SignInPage> {
         setState(() { _isLoading = false; });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Login failed: ${response["error"] ?? "Invalid email or password"}")),
+          SnackBar(content: Text("$_loginFailedPrefix${response[_errorKey] ?? _defaultLoginError}")),
         );
       }
     } catch (e) {
       setState(() { _isLoading = false; });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Network error: Unable to login")),
+        const SnackBar(content: Text(_networkErrorMessage)),
       );
     }
   }
@@ -80,30 +105,67 @@ class _SignInPageState extends State<SignInPage> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Sign In", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          _appBarTitle,
+          style: TextStyle(
+            fontSize: _appBarTitleFontSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         centerTitle: true,
       ),
       body: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(_pageHorizontalPadding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text("Email", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-            TextField(controller: _emailController, keyboardType: TextInputType.emailAddress, style: const TextStyle(color: Colors.black), decoration: _inputDecoration()),
-            const SizedBox(height: 15),
-            const Text("Password", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-            TextField(controller: _passwordController, obscureText: true, style: const TextStyle(color: Colors.black), decoration: _inputDecoration()),
-            const SizedBox(height: 30),
+            const Text(
+              _emailLabel,
+              style: TextStyle(
+                fontSize: _labelFontSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            TextField(
+              controller: _emailController,
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(color: Colors.black),
+              decoration: _inputDecoration(),
+            ),
+            const SizedBox(height: _inputSpacing),
+            const Text(
+              _passwordLabel,
+              style: TextStyle(
+                fontSize: _labelFontSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            TextField(
+              controller: _passwordController,
+              obscureText: true,
+              style: const TextStyle(color: Colors.black),
+              decoration: _inputDecoration(),
+            ),
+            const SizedBox(height: _buttonTopSpacing),
             Center(
               child: SizedBox(
-                width: 100,
-                height: 50,
+                width: _buttonWidth,
+                height: _buttonHeight,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _handleSignIn,
                   style: ButtonStyles.formButtonStyle(context, isEnabled: !_isLoading),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.grey)
-                      : const Text("Login", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      : const Text(
+                    _loginButtonText,
+                    style: TextStyle(
+                      fontSize: _buttonFontSize,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -117,7 +179,10 @@ class _SignInPageState extends State<SignInPage> {
     return InputDecoration(
       filled: true,
       fillColor: Colors.white,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(_inputBorderRadius),
+        borderSide: BorderSide.none,
+      ),
     );
   }
 }

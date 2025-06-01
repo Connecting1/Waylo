@@ -12,14 +12,35 @@ class SignUpEmailPage extends StatefulWidget {
 }
 
 class _SignUpEmailPageState extends State<SignUpEmailPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Create account";
+  static const String _questionText = "What's your email?";
+  static const String _nextButtonText = "Next";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 15;
+  static const double _questionFontSize = 25;
+  static const double _buttonFontSize = 18;
+
+  // 크기 상수들
+  static const double _toolbarHeight = 56;
+  static const double _horizontalPadding = 20;
+  static const double _inputBorderRadius = 10.0;
+  static const double _inputVerticalPadding = 15.0;
+  static const double _inputHorizontalPadding = 20.0;
+  static const double _buttonTopSpacing = 30;
+  static const double _buttonWidth = 100;
+  static const double _buttonHeight = 50;
+
+  // 유효성 검사 상수들
+  static const String _emailRegexPattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$";
+
   final TextEditingController _emailController = TextEditingController();
   bool _isEmailValid = false;
 
   /// 이메일 유효성 검사
   void _validateEmail(String email) {
-    final RegExp emailRegex = RegExp(
-      r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
-    );
+    final RegExp emailRegex = RegExp(_emailRegexPattern);
 
     setState(() {
       _isEmailValid = emailRegex.hasMatch(email);
@@ -52,25 +73,28 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
-          "Create account",
+          _appBarTitle,
           style: TextStyle(
-            fontSize: 15,
+            fontSize: _appBarTitleFontSize,
             fontWeight: FontWeight.bold,
             color: Colors.white,
           ),
         ),
         centerTitle: true,
-        toolbarHeight: 56,
+        toolbarHeight: _toolbarHeight,
       ),
       body: Padding(
-        padding: const EdgeInsets.only(left: 20, right: 20),
+        padding: const EdgeInsets.only(
+          left: _horizontalPadding,
+          right: _horizontalPadding,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
-              "What's your email?",
+              _questionText,
               style: TextStyle(
-                fontSize: 25,
+                fontSize: _questionFontSize,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
               ),
@@ -84,28 +108,28 @@ class _SignUpEmailPageState extends State<SignUpEmailPage> {
                 fillColor: Colors.white,
                 hintStyle: const TextStyle(color: Colors.grey),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
+                  borderRadius: BorderRadius.circular(_inputBorderRadius),
                   borderSide: BorderSide.none,
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                  vertical: 15.0,
-                  horizontal: 20.0,
+                  vertical: _inputVerticalPadding,
+                  horizontal: _inputHorizontalPadding,
                 ),
               ),
               keyboardType: TextInputType.emailAddress,
             ),
-            const SizedBox(height: 30),
+            const SizedBox(height: _buttonTopSpacing),
             Center(
               child: SizedBox(
-                width: 100,
-                height: 50,
+                width: _buttonWidth,
+                height: _buttonHeight,
                 child: ElevatedButton(
                   onPressed: _isEmailValid ? () => _goToPasswordPage(context) : null,
                   style: ButtonStyles.formButtonStyle(context, isEnabled: _isEmailValid),
                   child: const Text(
-                    "Next",
+                    _nextButtonText,
                     style: TextStyle(
-                      fontSize: 18,
+                      fontSize: _buttonFontSize,
                       fontWeight: FontWeight.bold,
                     ),
                   ),

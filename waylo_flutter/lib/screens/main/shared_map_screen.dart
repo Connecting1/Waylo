@@ -21,8 +21,30 @@ class SharedMapScreenPage extends StatefulWidget {
 }
 
 class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Friends Feed";
+  static const String _retryButtonText = "Retry";
+  static const String _noFriendsPostsTitle = "No friends' posts yet";
+  static const String _noFriendsPostsSubtitle = "Add friends to see their posts here!";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 16;
+  static const double _noFriendsPostsTitleFontSize = 18;
+  static const double _noFriendsPostsSubtitleFontSize = 14;
+
+  // 크기 상수들
+  static const double _errorIconSize = 64;
+  static const double _noFriendsIconSize = 64;
+  static const double _errorSpacing = 16;
+  static const double _noFriendsSpacing = 16;
+  static const double _noFriendsSubSpacing = 8;
+  static const double _loadingIndicatorPadding = 16.0;
+
+  // 페이지네이션 상수들
+  static const int _initialPage = 1;
+
   final ScrollController _scrollController = ScrollController();
-  int _currentPage = 1;
+  int _currentPage = _initialPage;
 
   @override
   void initState() {
@@ -51,7 +73,7 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
   Future<void> _loadFriendsFeeds({bool refresh = false}) async {
     final feedProvider = Provider.of<FeedProvider>(context, listen: false);
     if (refresh) {
-      _currentPage = 1;
+      _currentPage = _initialPage;
     }
     await feedProvider.fetchFriendsFeeds(refresh: refresh, page: _currentPage);
   }
@@ -74,15 +96,19 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
             ? AppColors.darkSurface
             : AppColors.primary,
         title: const Text(
-          "Friends Feed",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+          _appBarTitle,
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: _appBarTitleFontSize,
+          ),
         ),
         centerTitle: true,
       ),
       body: Consumer<FeedProvider>(
         builder: (context, feedProvider, child) {
           if (feedProvider.isLoading && feedProvider.friendsFeeds.isEmpty) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
 
           if (feedProvider.errorMessage.isNotEmpty && feedProvider.friendsFeeds.isEmpty) {
@@ -90,13 +116,13 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.error_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                  const Icon(Icons.error_outline, size: _errorIconSize, color: Colors.grey),
+                  const SizedBox(height: _errorSpacing),
                   Text(feedProvider.errorMessage),
-                  SizedBox(height: 16),
+                  const SizedBox(height: _errorSpacing),
                   ElevatedButton(
                     onPressed: () => _loadFriendsFeeds(refresh: true),
-                    child: Text('Retry'),
+                    child: const Text(_retryButtonText),
                   ),
                 ],
               ),
@@ -108,16 +134,22 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
+                  const Icon(Icons.people_outline, size: _noFriendsIconSize, color: Colors.grey),
+                  const SizedBox(height: _noFriendsSpacing),
                   Text(
-                    'No friends\' posts yet',
-                    style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+                    _noFriendsPostsTitle,
+                    style: TextStyle(
+                      fontSize: _noFriendsPostsTitleFontSize,
+                      color: Colors.grey[600],
+                    ),
                   ),
-                  SizedBox(height: 8),
-                  Text(
-                    'Add friends to see their posts here!',
-                    style: TextStyle(fontSize: 14, color: Colors.grey),
+                  const SizedBox(height: _noFriendsSubSpacing),
+                  const Text(
+                    _noFriendsPostsSubtitle,
+                    style: TextStyle(
+                      fontSize: _noFriendsPostsSubtitleFontSize,
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
@@ -132,9 +164,9 @@ class _SharedMapScreenPageState extends State<SharedMapScreenPage> {
                   (feedProvider.hasMoreFriendsFeeds ? 1 : 0),
               itemBuilder: (context, index) {
                 if (index >= feedProvider.friendsFeeds.length) {
-                  return Center(
+                  return const Center(
                     child: Padding(
-                      padding: EdgeInsets.all(16.0),
+                      padding: EdgeInsets.all(_loadingIndicatorPadding),
                       child: CircularProgressIndicator(),
                     ),
                   );
@@ -161,6 +193,131 @@ class FeedCard extends StatefulWidget {
 }
 
 class _FeedCardState extends State<FeedCard> {
+  // 텍스트 상수들
+  static const String _addCommentHint = 'Add a comment...';
+  static const String _noCommentsText = 'No comments yet';
+  static const String _locationText = 'Location';
+  static const String _dragToExploreText = "Drag to explore";
+  static const String _likeErrorMessage = 'An error occurred while processing like.';
+  static const String _networkErrorMessage = 'A network error occurred.';
+  static const String _bookmarkErrorMessage = 'An error occurred while processing bookmark.';
+  static const String _commentErrorMessage = "An error occurred while posting comment.";
+  static const String _unknownCountryCode = 'UNKNOWN';
+
+  // 시간 단위 상수들
+  static const String _yearUnit = 'y';
+  static const String _monthUnit = 'mo';
+  static const String _weekUnit = 'w';
+  static const String _dayUnit = 'd';
+  static const String _hourUnit = 'h';
+  static const String _minuteUnit = 'm';
+  static const String _nowText = 'now';
+  static const String _justNowText = 'just now';
+
+  // API 키 상수들
+  static const String _errorKey = 'error';
+  static const String _commentsKey = 'comments';
+  static const String _likesCountKey = 'likes_count';
+  static const String _bookmarksCountKey = 'bookmarks_count';
+  static const String _locationNameKey = 'location_name';
+
+  // 지도 관련 상수들
+  static const String _accessTokenEnvKey = "ACCESS_TOKEN";
+  static const String _defaultAccessToken = "pk.eyJ1IjoiY3Nkc2FkYXMiLCJhIjoiY2x4eDB2djJmMDhrcjJtcHhzeWFibHIxMiJ9.yU0tLrRdgUTv5xNj-ug9Ww";
+  static const String _mapboxStaticBaseUrl = "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/";
+  static const String _mapboxMarkerPrefix = "pin-s+ff0000(";
+  static const String _mapboxMarkerSuffix = ")";
+  static const String _mapboxAccessTokenParam = "?access_token=";
+  static const double _defaultMapZoom = 15.0;
+  static const int _defaultStaticMapZoom = 14;
+  static const int _defaultStaticMapWidth = 400;
+  static const int _defaultStaticMapHeight = 200;
+  static const double _mapDialogHeight = 500;
+
+  // 폰트 크기 상수들
+  static const double _usernameFontSize = 16;
+  static const double _dateFontSize = 12;
+  static const double _descriptionFontSize = 14;
+  static const double _locationDialogTitleFontSize = 16;
+  static const double _coordinatesFontSize = 12;
+  static const double _commentUsernameFontSize = 14;
+  static const double _commentContentFontSize = 14;
+  static const double _commentTimeFontSize = 12;
+
+  // 크기 상수들
+  static const double _cardVerticalMargin = 4;
+  static const double _headerPadding = 12;
+  static const double _headerVerticalPadding = 8;
+  static const double _profileRadius = 20;
+  static const double _profileSpacing = 12;
+  static const double _actionsPadding = 16;
+  static const double _actionsVerticalPadding = 8;
+  static const double _actionsSpacing = 20;
+  static const double _actionIconSize = 24;
+  static const double _actionIconSpacing = 4;
+  static const double _descriptionHorizontalPadding = 12;
+  static const double _locationMapHeight = 120;
+  static const double _locationMapMargin = 12;
+  static const double _locationMapVerticalMargin = 8;
+  static const double _locationMapBorderRadius = 12;
+  static const double _locationOverlayPadding = 8;
+  static const double _locationOverlayHorizontalPadding = 8;
+  static const double _locationOverlayVerticalPadding = 4;
+  static const double _locationIconSize = 16;
+  static const double _locationIconSpacing = 4;
+  static const double _fullscreenIconSize = 16;
+  static const double _commentsPadding = 16;
+  static const double _commentItemHorizontalPadding = 12;
+  static const double _commentItemVerticalPadding = 4;
+  static const double _commentProfileRadius = 12;
+  static const double _commentProfileSpacing = 8;
+  static const double _commentContentSpacing = 2;
+  static const double _commentTimePadding = 4;
+  static const double _commentInputPadding = 12;
+  static const double _commentInputProfileRadius = 16;
+  static const double _commentInputProfileSpacing = 12;
+  static const double _commentInputBorderRadius = 20;
+  static const double _commentInputHorizontalPadding = 16;
+  static const double _commentInputVerticalPadding = 8;
+  static const double _commentInputSpacing = 8;
+  static const double _sendIconSize = 20;
+  static const double _sendButtonPadding = 8;
+  static const double _bottomSpacing = 8;
+  static const double _imageLoadingHeight = 300;
+  static const double _imageErrorIconSize = 50;
+  static const double _loadingIndicatorSize = 24;
+  static const double _loadingIndicatorStroke = 2;
+  static const double _commentProfileIconSize = 16;
+  static const double _commentInputProfileIconSize = 20;
+
+  // 지도 다이얼로그 상수들
+  static const double _mapDialogInsets = 20;
+  static const double _mapDialogPadding = 16;
+  static const double _mapDialogTitleSpacing = 8;
+  static const double _mapDialogBottomPadding = 12;
+  static const double _mapDialogCoordinatesSpacing = 4;
+  static const double _mapDialogHintSpacing = 16;
+
+  // 마커 이미지 상수들
+  static const int _markerSize = 170;
+  static const int _markerPhotoSize = 150;
+  static const double _markerBorderWidth = 7.0;
+  static const double _markerBorderRadius = 8;
+
+  // 투명도 상수들
+  static const double _loadingOpacity = 0.6;
+  static const double _locationOverlayOpacity = 0.7;
+  static const double _fullscreenOverlayOpacity = 0.5;
+
+  // 시간 계산 상수들
+  static const int _daysInYear = 365;
+  static const int _daysInMonth = 30;
+  static const int _daysInWeek = 7;
+
+  // 좌표 표시 정밀도 상수들
+  static const int _coordinateDecimalPlaces = 6;
+  static const int _locationTextDecimalPlaces = 3;
+
   List<FeedComment> _comments = [];
   bool _isLoadingComments = false;
   bool _isPostingComment = false;
@@ -212,8 +369,8 @@ class _FeedCardState extends State<FeedCard> {
     try {
       final response = await FeedApi.fetchFeedComments(widget.feed.id);
 
-      if (response is Map && response.containsKey('comments')) {
-        List<dynamic> commentsData = response['comments'];
+      if (response is Map && response.containsKey(_commentsKey)) {
+        List<dynamic> commentsData = response[_commentsKey];
         setState(() {
           _comments = commentsData.map((data) => FeedComment.fromJson(data)).toList();
         });
@@ -253,17 +410,17 @@ class _FeedCardState extends State<FeedCard> {
         response = await FeedApi.likeFeed(widget.feed.id);
       }
 
-      if (response.containsKey('error')) {
+      if (response.containsKey(_errorKey)) {
         setState(() {
           _isLiked = originalIsLiked;
           _likesCount = originalLikesCount;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred while processing like.')),
+          const SnackBar(content: Text(_likeErrorMessage)),
         );
       } else {
         setState(() {
-          _likesCount = response['likes_count'] ?? _likesCount;
+          _likesCount = response[_likesCountKey] ?? _likesCount;
         });
       }
     } catch (e) {
@@ -272,7 +429,7 @@ class _FeedCardState extends State<FeedCard> {
         _likesCount = originalLikesCount;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('A network error occurred.')),
+        const SnackBar(content: Text(_networkErrorMessage)),
       );
     } finally {
       setState(() {
@@ -307,17 +464,17 @@ class _FeedCardState extends State<FeedCard> {
         response = await FeedApi.bookmarkFeed(widget.feed.id);
       }
 
-      if (response.containsKey('error')) {
+      if (response.containsKey(_errorKey)) {
         setState(() {
           _isBookmarked = originalIsBookmarked;
           _bookmarksCount = originalBookmarksCount;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('An error occurred while processing bookmark.')),
+          const SnackBar(content: Text(_bookmarkErrorMessage)),
         );
       } else {
         setState(() {
-          _bookmarksCount = response['bookmarks_count'] ?? _bookmarksCount;
+          _bookmarksCount = response[_bookmarksCountKey] ?? _bookmarksCount;
         });
       }
     } catch (e) {
@@ -326,7 +483,7 @@ class _FeedCardState extends State<FeedCard> {
         _bookmarksCount = originalBookmarksCount;
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('An error occurred while processing bookmark.')),
+        const SnackBar(content: Text(_bookmarkErrorMessage)),
       );
     } finally {
       setState(() {
@@ -349,15 +506,15 @@ class _FeedCardState extends State<FeedCard> {
     try {
       final response = await FeedApi.createComment(widget.feed.id, comment);
 
-      if (response.containsKey('error')) {
-        throw Exception(response['error']);
+      if (response.containsKey(_errorKey)) {
+        throw Exception(response[_errorKey]);
       }
 
       _commentController.clear();
       await _loadComments();
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("An error occurred while posting comment.")),
+        const SnackBar(content: Text(_commentErrorMessage)),
       );
     } finally {
       setState(() {
@@ -386,37 +543,37 @@ class _FeedCardState extends State<FeedCard> {
       context: context,
       builder: (BuildContext context) {
         return Dialog(
-          insetPadding: EdgeInsets.all(20),
-          child: Container(
-            height: 500,
+          insetPadding: const EdgeInsets.all(_mapDialogInsets),
+          child: SizedBox(
+            height: _mapDialogHeight,
             child: Column(
               children: [
                 Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
+                  padding: const EdgeInsets.all(_mapDialogPadding),
+                  decoration: const BoxDecoration(
                     color: AppColors.primary,
                     borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      topRight: Radius.circular(12),
+                      topLeft: Radius.circular(_locationMapBorderRadius),
+                      topRight: Radius.circular(_locationMapBorderRadius),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.location_on, color: Colors.white),
-                      SizedBox(width: 8),
+                      const Icon(Icons.location_on, color: Colors.white),
+                      const SizedBox(width: _mapDialogTitleSpacing),
                       Expanded(
                         child: Text(
                           _getLocationText(),
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                            fontSize: _locationDialogTitleFontSize,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.close, color: Colors.white),
+                        icon: const Icon(Icons.close, color: Colors.white),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
@@ -424,9 +581,9 @@ class _FeedCardState extends State<FeedCard> {
                 ),
                 Expanded(
                   child: ClipRRect(
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(12),
-                      bottomRight: Radius.circular(12),
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(_locationMapBorderRadius),
+                      bottomRight: Radius.circular(_locationMapBorderRadius),
                     ),
                     child: MapWidget(
                       key: ValueKey("location-map-${widget.feed.id}"),
@@ -437,7 +594,7 @@ class _FeedCardState extends State<FeedCard> {
                                 widget.feed.latitude
                             )
                         ),
-                        zoom: 15.0,
+                        zoom: _defaultMapZoom,
                       ),
                       onMapCreated: (MapboxMap mapboxMap) {
                         _addMarkerToMap(mapboxMap);
@@ -446,22 +603,22 @@ class _FeedCardState extends State<FeedCard> {
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(_mapDialogBottomPadding),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.gps_fixed, size: 16, color: Colors.grey),
-                      SizedBox(width: 4),
+                      const Icon(Icons.gps_fixed, size: _locationIconSize, color: Colors.grey),
+                      const SizedBox(width: _mapDialogCoordinatesSpacing),
                       Text(
-                        "${widget.feed.latitude.toStringAsFixed(6)}, ${widget.feed.longitude.toStringAsFixed(6)}",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                        "${widget.feed.latitude.toStringAsFixed(_coordinateDecimalPlaces)}, ${widget.feed.longitude.toStringAsFixed(_coordinateDecimalPlaces)}",
+                        style: const TextStyle(color: Colors.grey, fontSize: _coordinatesFontSize),
                       ),
-                      SizedBox(width: 16),
-                      Icon(Icons.pan_tool, size: 16, color: Colors.grey),
-                      SizedBox(width: 4),
-                      Text(
-                        "Drag to explore",
-                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      const SizedBox(width: _mapDialogHintSpacing),
+                      const Icon(Icons.pan_tool, size: _locationIconSize, color: Colors.grey),
+                      const SizedBox(width: _mapDialogCoordinatesSpacing),
+                      const Text(
+                        _dragToExploreText,
+                        style: TextStyle(color: Colors.grey, fontSize: _coordinatesFontSize),
                       ),
                     ],
                   ),
@@ -479,30 +636,35 @@ class _FeedCardState extends State<FeedCard> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Card(
-      margin: EdgeInsets.symmetric(vertical: 4),
+      margin: const EdgeInsets.symmetric(vertical: _cardVerticalMargin),
       elevation: 0,
       color: themeProvider.cardColor,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(12, 8, 12, 8),
+            padding: const EdgeInsets.fromLTRB(
+              _headerPadding,
+              _headerVerticalPadding,
+              _headerPadding,
+              _headerVerticalPadding,
+            ),
             child: Row(
               children: [
                 InkWell(
                   onTap: _handleProfileNavigation,
                   borderRadius: BorderRadius.circular(25),
                   child: CircleAvatar(
-                    radius: 20,
+                    radius: _profileRadius,
                     backgroundImage: widget.feed.fullProfileImageUrl.isNotEmpty
                         ? NetworkImage(widget.feed.fullProfileImageUrl)
                         : null,
                     child: widget.feed.fullProfileImageUrl.isEmpty
-                        ? Icon(Icons.person)
+                        ? const Icon(Icons.person)
                         : null,
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: _profileSpacing),
                 Expanded(
                   child: InkWell(
                     onTap: _handleProfileNavigation,
@@ -516,7 +678,7 @@ class _FeedCardState extends State<FeedCard> {
                             widget.feed.username,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: _usernameFontSize,
                               color: themeProvider.textColor,
                             ),
                           ),
@@ -524,7 +686,7 @@ class _FeedCardState extends State<FeedCard> {
                             _formatDate(widget.feed.createdAt),
                             style: TextStyle(
                               color: themeProvider.secondaryTextColor,
-                              fontSize: 12,
+                              fontSize: _dateFontSize,
                             ),
                           ),
                         ],
@@ -536,24 +698,24 @@ class _FeedCardState extends State<FeedCard> {
             ),
           ),
 
-          Container(
+          SizedBox(
             width: double.infinity,
             child: Image.network(
               widget.feed.fullImageUrl,
               fit: BoxFit.contain,
               loadingBuilder: (context, child, loadingProgress) {
                 if (loadingProgress == null) return child;
-                return Container(
-                  height: 300,
+                return const SizedBox(
+                  height: _imageLoadingHeight,
                   child: Center(child: CircularProgressIndicator()),
                 );
               },
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  height: 300,
+                  height: _imageLoadingHeight,
                   color: Colors.grey[300],
-                  child: Center(
-                    child: Icon(Icons.broken_image, size: 50, color: Colors.grey),
+                  child: const Center(
+                    child: Icon(Icons.broken_image, size: _imageErrorIconSize, color: Colors.grey),
                   ),
                 );
               },
@@ -561,67 +723,70 @@ class _FeedCardState extends State<FeedCard> {
           ),
 
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(
+              horizontal: _actionsPadding,
+              vertical: _actionsVerticalPadding,
+            ),
             child: Row(
               children: [
                 InkWell(
                   onTap: _isLikeLoading ? null : _handleLikeToggle,
                   borderRadius: BorderRadius.circular(20),
                   child: Opacity(
-                    opacity: _isLikeLoading ? 0.6 : 1.0,
+                    opacity: _isLikeLoading ? _loadingOpacity : 1.0,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _isLikeLoading
-                            ? SizedBox(
-                          width: 24,
-                          height: 24,
+                            ? const SizedBox(
+                          width: _loadingIndicatorSize,
+                          height: _loadingIndicatorSize,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: _loadingIndicatorStroke,
                             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                           ),
                         )
                             : Icon(
                           _isLiked ? Icons.favorite : Icons.favorite_border,
                           color: _isLiked ? AppColors.primary : themeProvider.iconColor,
-                          size: 24,
+                          size: _actionIconSize,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: _actionIconSpacing),
                         Text(
                           _likesCount.toString(),
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
                   ),
                 ),
-                SizedBox(width: 20),
+                const SizedBox(width: _actionsSpacing),
                 InkWell(
                   onTap: _isBookmarkLoading ? null : _handleBookmarkToggle,
                   borderRadius: BorderRadius.circular(20),
                   child: Opacity(
-                    opacity: _isBookmarkLoading ? 0.6 : 1.0,
+                    opacity: _isBookmarkLoading ? _loadingOpacity : 1.0,
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _isBookmarkLoading
-                            ? SizedBox(
-                          width: 24,
-                          height: 24,
+                            ? const SizedBox(
+                          width: _loadingIndicatorSize,
+                          height: _loadingIndicatorSize,
                           child: CircularProgressIndicator(
-                            strokeWidth: 2,
+                            strokeWidth: _loadingIndicatorStroke,
                             valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                           ),
                         )
                             : Icon(
                           _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
                           color: _isBookmarked ? AppColors.primary : themeProvider.iconColor,
-                          size: 24,
+                          size: _actionIconSize,
                         ),
-                        SizedBox(width: 4),
+                        const SizedBox(width: _actionIconSpacing),
                         Text(
                           _bookmarksCount.toString(),
-                          style: TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold),
                         ),
                       ],
                     ),
@@ -633,28 +798,31 @@ class _FeedCardState extends State<FeedCard> {
 
           if (widget.feed.description.isNotEmpty)
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: _descriptionHorizontalPadding),
               child: Text(
                 widget.feed.description,
-                style: TextStyle(fontSize: 14),
+                style: const TextStyle(fontSize: _descriptionFontSize),
               ),
             ),
 
           InkWell(
             onTap: _handleLocationMapShow,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(_locationMapBorderRadius),
             child: Container(
-              margin: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              height: 120,
+              margin: const EdgeInsets.symmetric(
+                horizontal: _locationMapMargin,
+                vertical: _locationMapVerticalMargin,
+              ),
+              height: _locationMapHeight,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(_locationMapBorderRadius),
                 border: Border.all(color: Colors.grey[300]!),
               ),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(_locationMapBorderRadius),
                 child: Stack(
                   children: [
-                    Container(
+                    SizedBox(
                       width: double.infinity,
                       height: double.infinity,
                       child: Image.network(
@@ -662,24 +830,22 @@ class _FeedCardState extends State<FeedCard> {
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
                           if (loadingProgress == null) return child;
-                          return Container(
-                            child: Center(
-                              child: CircularProgressIndicator(),
-                            ),
+                          return const Center(
+                            child: CircularProgressIndicator(),
                           );
                         },
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             color: Colors.grey[200],
-                            child: Center(
+                            child: const Center(
                               child: Column(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Icon(Icons.map_outlined, size: 32, color: Colors.grey),
                                   SizedBox(height: 4),
                                   Text(
-                                    'Location',
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                    _locationText,
+                                    style: TextStyle(color: Colors.grey, fontSize: _coordinatesFontSize),
                                   ),
                                 ],
                               ),
@@ -689,25 +855,28 @@ class _FeedCardState extends State<FeedCard> {
                       ),
                     ),
                     Positioned(
-                      bottom: 8,
-                      left: 8,
-                      right: 8,
+                      bottom: _locationOverlayPadding,
+                      left: _locationOverlayPadding,
+                      right: _locationOverlayPadding,
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: _locationOverlayHorizontalPadding,
+                          vertical: _locationOverlayVerticalPadding,
+                        ),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.7),
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.black.withOpacity(_locationOverlayOpacity),
+                          borderRadius: BorderRadius.circular(_locationOverlayHorizontalPadding),
                         ),
                         child: Row(
                           children: [
-                            Icon(Icons.location_on, color: Colors.white, size: 16),
-                            SizedBox(width: 4),
+                            const Icon(Icons.location_on, color: Colors.white, size: _locationIconSize),
+                            const SizedBox(width: _locationIconSpacing),
                             Expanded(
                               child: Text(
                                 _getLocationText(),
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 12,
+                                  fontSize: _coordinatesFontSize,
                                   fontWeight: FontWeight.w500,
                                 ),
                                 overflow: TextOverflow.ellipsis,
@@ -718,18 +887,18 @@ class _FeedCardState extends State<FeedCard> {
                       ),
                     ),
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: _locationOverlayPadding,
+                      right: _locationOverlayPadding,
                       child: Container(
-                        padding: EdgeInsets.all(4),
+                        padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.black.withOpacity(_fullscreenOverlayOpacity),
+                          borderRadius: BorderRadius.circular(_locationMapBorderRadius),
                         ),
-                        child: Icon(
+                        child: const Icon(
                           Icons.fullscreen,
                           color: Colors.white,
-                          size: 16,
+                          size: _fullscreenIconSize,
                         ),
                       ),
                     ),
@@ -742,16 +911,16 @@ class _FeedCardState extends State<FeedCard> {
           Divider(color: Colors.grey[300]),
 
           if (_isLoadingComments)
-            Padding(
-              padding: EdgeInsets.all(16),
+            const Padding(
+              padding: EdgeInsets.all(_commentsPadding),
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_comments.isEmpty)
-            Padding(
-              padding: EdgeInsets.all(16),
+            const Padding(
+              padding: EdgeInsets.all(_commentsPadding),
               child: Center(
                 child: Text(
-                  'No comments yet',
+                  _noCommentsText,
                   style: TextStyle(color: Colors.grey),
                 ),
               ),
@@ -763,59 +932,62 @@ class _FeedCardState extends State<FeedCard> {
             ),
 
           Padding(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(_commentInputPadding),
             child: Row(
               children: [
                 Consumer<UserProvider>(
                   builder: (context, userProvider, child) {
                     return CircleAvatar(
-                      radius: 16,
+                      radius: _commentInputProfileRadius,
                       backgroundImage: userProvider.profileImage.isNotEmpty
                           ? NetworkImage(userProvider.profileImage)
                           : null,
                       child: userProvider.profileImage.isEmpty
-                          ? Icon(Icons.person, size: 20)
+                          ? const Icon(Icons.person, size: _commentInputProfileIconSize)
                           : null,
                     );
                   },
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: _commentInputProfileSpacing),
                 Expanded(
                   child: TextField(
                     controller: _commentController,
                     focusNode: _commentFocusNode,
                     decoration: InputDecoration(
-                      hintText: 'Add a comment...',
+                      hintText: _addCommentHint,
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(_commentInputBorderRadius),
                         borderSide: BorderSide.none,
                       ),
                       filled: true,
                       fillColor: themeProvider.isDarkMode ? Colors.grey[800] : Colors.grey[100],
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: _commentInputHorizontalPadding,
+                        vertical: _commentInputVerticalPadding,
+                      ),
                     ),
                     maxLines: 1,
                     onSubmitted: (_) => _handleCommentPost(),
                   ),
                 ),
-                SizedBox(width: 8),
+                const SizedBox(width: _commentInputSpacing),
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
                     onTap: _isPostingComment ? null : _handleCommentPost,
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
-                      padding: EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(_sendButtonPadding),
                       child: _isPostingComment
-                          ? SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                          ? const SizedBox(
+                        width: _sendIconSize,
+                        height: _sendIconSize,
+                        child: CircularProgressIndicator(strokeWidth: _loadingIndicatorStroke),
                       )
-                          : Icon(
+                          : const Icon(
                         Icons.send,
                         color: AppColors.primary,
-                        size: 20,
+                        size: _sendIconSize,
                       ),
                     ),
                   ),
@@ -824,7 +996,7 @@ class _FeedCardState extends State<FeedCard> {
             ),
           ),
 
-          SizedBox(height: 8),
+          const SizedBox(height: _bottomSpacing),
         ],
       ),
     );
@@ -835,7 +1007,10 @@ class _FeedCardState extends State<FeedCard> {
     final themeProvider = Provider.of<ThemeProvider>(context);
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding: const EdgeInsets.symmetric(
+        horizontal: _commentItemHorizontalPadding,
+        vertical: _commentItemVerticalPadding,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -843,19 +1018,19 @@ class _FeedCardState extends State<FeedCard> {
             onTap: () => _navigateToCommentProfile(comment),
             borderRadius: BorderRadius.circular(15),
             child: Container(
-              padding: EdgeInsets.all(2),
+              padding: const EdgeInsets.all(2),
               child: CircleAvatar(
-                radius: 12,
+                radius: _commentProfileRadius,
                 backgroundImage: comment.fullProfileImageUrl.isNotEmpty
                     ? NetworkImage(comment.fullProfileImageUrl)
                     : null,
                 child: comment.fullProfileImageUrl.isEmpty
-                    ? Icon(Icons.person, size: 16)
+                    ? const Icon(Icons.person, size: _commentProfileIconSize)
                     : null,
               ),
             ),
           ),
-          SizedBox(width: 8),
+          const SizedBox(width: _commentProfileSpacing),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -864,7 +1039,7 @@ class _FeedCardState extends State<FeedCard> {
                   onTap: () => _navigateToCommentProfile(comment),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    padding: EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                    padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
                     child: RichText(
                       text: TextSpan(
                         children: [
@@ -872,14 +1047,14 @@ class _FeedCardState extends State<FeedCard> {
                             text: comment.username,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                              fontSize: _commentUsernameFontSize,
                               color: themeProvider.textColor,
                             ),
                           ),
                           TextSpan(
                             text: ' ${comment.content}',
                             style: TextStyle(
-                              fontSize: 14,
+                              fontSize: _commentContentFontSize,
                               color: themeProvider.textColor,
                             ),
                           ),
@@ -888,14 +1063,14 @@ class _FeedCardState extends State<FeedCard> {
                     ),
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: _commentContentSpacing),
                 Padding(
-                  padding: EdgeInsets.only(left: 4),
+                  padding: const EdgeInsets.only(left: _commentTimePadding),
                   child: Text(
                     _timeAgo(comment.createdAt),
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.grey,
-                      fontSize: 12,
+                      fontSize: _commentTimeFontSize,
                     ),
                   ),
                 ),
@@ -968,18 +1143,14 @@ class _FeedCardState extends State<FeedCard> {
 
   /// 이미지에 테두리 추가
   Future<Uint8List> _addBorderToImage(Uint8List imageBytes) async {
-    final int size = 170;
-    final int photoSize = 150;
-    final double borderWidth = 7.0;
-
     final ui.PictureRecorder recorder = ui.PictureRecorder();
-    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+    final Canvas canvas = Canvas(recorder, Rect.fromLTWH(0, 0, _markerSize.toDouble(), _markerSize.toDouble()));
 
     final ui.Codec codec = await ui.instantiateImageCodec(imageBytes);
     final ui.FrameInfo frameInfo = await codec.getNextFrame();
 
-    final double photoLeft = (size - photoSize) / 2;
-    final double photoTop = (size - photoSize) / 2;
+    final double photoLeft = (_markerSize - _markerPhotoSize) / 2;
+    final double photoTop = (_markerSize - _markerPhotoSize) / 2;
 
     final Paint borderPaint = Paint()
       ..color = AppColors.primary
@@ -987,9 +1158,9 @@ class _FeedCardState extends State<FeedCard> {
 
     canvas.drawRRect(
       RRect.fromRectAndRadius(
-        Rect.fromLTWH(photoLeft - borderWidth, photoTop - borderWidth,
-            photoSize + (borderWidth * 2), photoSize + (borderWidth * 2)),
-        Radius.circular(8),
+        Rect.fromLTWH(photoLeft - _markerBorderWidth, photoTop - _markerBorderWidth,
+            _markerPhotoSize + (_markerBorderWidth * 2), _markerPhotoSize + (_markerBorderWidth * 2)),
+        const Radius.circular(_markerBorderRadius),
       ),
       borderPaint,
     );
@@ -1008,41 +1179,41 @@ class _FeedCardState extends State<FeedCard> {
     }
 
     final Rect srcRect = Rect.fromLTWH(srcX, srcY, srcWidth, srcHeight);
-    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, photoSize.toDouble(), photoSize.toDouble());
+    final Rect destRect = Rect.fromLTWH(photoLeft, photoTop, _markerPhotoSize.toDouble(), _markerPhotoSize.toDouble());
 
     canvas.drawImageRect(frameInfo.image, srcRect, destRect, Paint());
 
-    final ui.Image image = await recorder.endRecording().toImage(size, size);
+    final ui.Image image = await recorder.endRecording().toImage(_markerSize, _markerSize);
     final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
 
     return byteData!.buffer.asUint8List();
   }
 
   /// Mapbox Static Images API URL 생성
-  String _getMapboxStaticImageUrl({int zoom = 14, int width = 400, int height = 200}) {
-    const String accessToken = String.fromEnvironment("ACCESS_TOKEN",
-        defaultValue: "pk.eyJ1IjoiY3Nkc2FkYXMiLCJhIjoiY2x4eDB2djJmMDhrcjJtcHhzeWFibHIxMiJ9.yU0tLrRdgUTv5xNj-ug9Ww");
+  String _getMapboxStaticImageUrl({int zoom = _defaultStaticMapZoom, int width = _defaultStaticMapWidth, int height = _defaultStaticMapHeight}) {
+    const String accessToken = String.fromEnvironment(_accessTokenEnvKey,
+        defaultValue: _defaultAccessToken);
     final double lng = widget.feed.longitude;
     final double lat = widget.feed.latitude;
 
-    final String marker = "pin-s+ff0000($lng,$lat)";
+    final String marker = "$_mapboxMarkerPrefix$lng,$lat$_mapboxMarkerSuffix";
 
-    return "https://api.mapbox.com/styles/v1/mapbox/streets-v11/static/$marker/$lng,$lat,$zoom/${width}x$height?access_token=$accessToken";
+    return "$_mapboxStaticBaseUrl$marker/$lng,$lat,$zoom/${width}x$height$_mapboxAccessTokenParam$accessToken";
   }
 
   /// 위치 텍스트 가져오기
   String _getLocationText() {
-    if (widget.feed.extraData.containsKey('location_name') &&
-        widget.feed.extraData['location_name'] != null &&
-        widget.feed.extraData['location_name'].isNotEmpty) {
-      return widget.feed.extraData['location_name'];
+    if (widget.feed.extraData.containsKey(_locationNameKey) &&
+        widget.feed.extraData[_locationNameKey] != null &&
+        widget.feed.extraData[_locationNameKey].isNotEmpty) {
+      return widget.feed.extraData[_locationNameKey];
     }
 
-    if (widget.feed.countryCode.isNotEmpty && widget.feed.countryCode != 'UNKNOWN') {
+    if (widget.feed.countryCode.isNotEmpty && widget.feed.countryCode != _unknownCountryCode) {
       return widget.feed.countryCode;
     }
 
-    return "${widget.feed.latitude.toStringAsFixed(3)}, ${widget.feed.longitude.toStringAsFixed(3)}";
+    return "${widget.feed.latitude.toStringAsFixed(_locationTextDecimalPlaces)}, ${widget.feed.longitude.toStringAsFixed(_locationTextDecimalPlaces)}";
   }
 
   /// 날짜 포맷팅
@@ -1050,20 +1221,20 @@ class _FeedCardState extends State<FeedCard> {
     final now = DateTime.now();
     final difference = now.difference(date);
 
-    if (difference.inDays >= 365) {
-      return '${(difference.inDays / 365).floor()}y';
-    } else if (difference.inDays >= 30) {
-      return '${(difference.inDays / 30).floor()}mo';
-    } else if (difference.inDays >= 7) {
-      return '${(difference.inDays / 7).floor()}w';
+    if (difference.inDays >= _daysInYear) {
+      return '${(difference.inDays / _daysInYear).floor()}$_yearUnit';
+    } else if (difference.inDays >= _daysInMonth) {
+      return '${(difference.inDays / _daysInMonth).floor()}$_monthUnit';
+    } else if (difference.inDays >= _daysInWeek) {
+      return '${(difference.inDays / _daysInWeek).floor()}$_weekUnit';
     } else if (difference.inDays >= 1) {
-      return '${difference.inDays}d';
+      return '${difference.inDays}$_dayUnit';
     } else if (difference.inHours >= 1) {
-      return '${difference.inHours}h';
+      return '${difference.inHours}$_hourUnit';
     } else if (difference.inMinutes >= 1) {
-      return '${difference.inMinutes}m';
+      return '${difference.inMinutes}$_minuteUnit';
     } else {
-      return 'now';
+      return _nowText;
     }
   }
 
@@ -1071,20 +1242,20 @@ class _FeedCardState extends State<FeedCard> {
   String _timeAgo(DateTime dateTime) {
     final difference = DateTime.now().difference(dateTime);
 
-    if (difference.inDays >= 365) {
-      return '${(difference.inDays / 365).floor()}y';
-    } else if (difference.inDays >= 30) {
-      return '${(difference.inDays / 30).floor()}mo';
-    } else if (difference.inDays >= 7) {
-      return '${(difference.inDays / 7).floor()}w';
+    if (difference.inDays >= _daysInYear) {
+      return '${(difference.inDays / _daysInYear).floor()}$_yearUnit';
+    } else if (difference.inDays >= _daysInMonth) {
+      return '${(difference.inDays / _daysInMonth).floor()}$_monthUnit';
+    } else if (difference.inDays >= _daysInWeek) {
+      return '${(difference.inDays / _daysInWeek).floor()}$_weekUnit';
     } else if (difference.inDays >= 1) {
-      return '${difference.inDays}d';
+      return '${difference.inDays}$_dayUnit';
     } else if (difference.inHours >= 1) {
-      return '${difference.inHours}h';
+      return '${difference.inHours}$_hourUnit';
     } else if (difference.inMinutes >= 1) {
-      return '${difference.inMinutes}m';
+      return '${difference.inMinutes}$_minuteUnit';
     } else {
-      return 'just now';
+      return _justNowText;
     }
   }
 }

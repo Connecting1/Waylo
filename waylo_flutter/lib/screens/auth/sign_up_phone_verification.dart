@@ -18,6 +18,38 @@ class SignUpPhoneVerificationPage extends StatefulWidget {
 }
 
 class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPage> {
+  // 텍스트 상수들
+  static const String _appBarTitle = "Create account";
+  static const String _phoneQuestionText = "What's your phone number";
+  static const String _codeQuestionText = "Enter verification code";
+  static const String _nextButtonText = "Next";
+  static const String _codeSentMessage = "Verification code has been sent.";
+  static const String _verificationCompleteMessage = "Phone verification completed!";
+  static const String _verificationRequiredMessage = "You need to complete phone verification.";
+  static const String _signUpFailedPrefix = "Sign up failed: ";
+  static const String _networkErrorMessage = "Network error: Unable to sign up.";
+  static const String _signUpSuccessMessage = "Sign up and login successful!";
+  static const String _autoLoginFailedMessage = "Sign up was successful but auto-login failed. Please log in.";
+  static const String _errorKey = "error";
+  static const String _authTokenKey = "auth_token";
+  static const String _userIdKey = "user_id";
+
+  // 폰트 크기 상수들
+  static const double _appBarTitleFontSize = 15;
+  static const double _questionFontSize = 25;
+  static const double _buttonFontSize = 18;
+
+  // 크기 상수들
+  static const double _pageHorizontalPadding = 20;
+  static const double _questionSpacing = 10;
+  static const double _sectionSpacing = 20;
+  static const double _inputBorderRadius = 10;
+  static const double _buttonWidth = 100;
+  static const double _buttonHeight = 50;
+
+  // 인증번호 관련 상수들
+  static const int _verificationCodeLength = 6;
+
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _verificationCodeController = TextEditingController();
   bool _isCodeSent = false;
@@ -40,13 +72,13 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       _isCodeSent = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Verification code has been sent.")),
+      const SnackBar(content: Text(_codeSentMessage)),
     );
   }
 
   /// 인증번호 입력 시 자동 검증
   void _onCodeChanged(String value) {
-    if (value.length == 6) {
+    if (value.length == _verificationCodeLength) {
       _verifyCode(value);
     }
   }
@@ -57,7 +89,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       _isVerified = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Phone verification completed!")),
+      const SnackBar(content: Text(_verificationCompleteMessage)),
     );
   }
 
@@ -65,7 +97,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
   Future<void> _handleFinalSignUp() async {
     if (!_isVerified) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("You need to complete phone verification.")),
+        const SnackBar(content: Text(_verificationRequiredMessage)),
       );
       return;
     }
@@ -87,13 +119,13 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
         provider: provider.provider,
       );
 
-      if (response.containsKey("error")) {
+      if (response.containsKey(_errorKey)) {
         setState(() {
           _isLoading = false;
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Sign up failed: ${response["error"]}")),
+          SnackBar(content: Text("$_signUpFailedPrefix${response[_errorKey]}")),
         );
       } else {
         // 회원가입 성공 후 자동 로그인 시도
@@ -105,7 +137,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Network error: Unable to sign up.")),
+        const SnackBar(content: Text(_networkErrorMessage)),
       );
     }
   }
@@ -118,14 +150,14 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
           provider.password ?? ""
       );
 
-      if (loginResponse.containsKey("auth_token")) {
+      if (loginResponse.containsKey(_authTokenKey)) {
         // 로그인 성공 시 토큰 및 사용자 정보 저장
-        String token = loginResponse["auth_token"];
+        String token = loginResponse[_authTokenKey];
         await provider.setAuthToken(token);
 
         SharedPreferences prefs = await SharedPreferences.getInstance();
-        if (loginResponse.containsKey("user_id")) {
-          await prefs.setString("user_id", loginResponse["user_id"]);
+        if (loginResponse.containsKey(_userIdKey)) {
+          await prefs.setString(_userIdKey, loginResponse[_userIdKey]);
         }
 
         await DataLoadingManager.handleLoginSuccess(context);
@@ -135,7 +167,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
         });
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Sign up and login successful!")),
+          const SnackBar(content: Text(_signUpSuccessMessage)),
         );
 
         Navigator.pushReplacement(
@@ -157,7 +189,7 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Sign up was successful but auto-login failed. Please log in.")),
+      const SnackBar(content: Text(_autoLoginFailedMessage)),
     );
 
     Navigator.pushReplacement(
@@ -176,17 +208,31 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text("Create account", style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+        title: const Text(
+          _appBarTitle,
+          style: TextStyle(
+            fontSize: _appBarTitleFontSize,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(_pageHorizontalPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text("What's your phone number", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-              const SizedBox(height: 10),
+              const Text(
+                _phoneQuestionText,
+                style: TextStyle(
+                  fontSize: _questionFontSize,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: _questionSpacing),
               TextField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
@@ -195,21 +241,24 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.white,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(_inputBorderRadius),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: _sectionSpacing),
               Center(
                 child: SizedBox(
-                  width: 100,
-                  height: 50,
+                  width: _buttonWidth,
+                  height: _buttonHeight,
                   child: ElevatedButton(
                     onPressed: _isPhoneValid && !_isCodeSent ? _sendVerificationCode : null,
                     style: ButtonStyles.formButtonStyle(context, isEnabled: _isPhoneValid && !_isCodeSent),
                     child: const Text(
-                      "Next",
+                      _nextButtonText,
                       style: TextStyle(
-                        fontSize: 18,
+                        fontSize: _buttonFontSize,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -217,39 +266,49 @@ class _SignUpPhoneVerificationPageState extends State<SignUpPhoneVerificationPag
                 ),
               ),
               if (_isCodeSent) ...[
-                const SizedBox(height: 20),
-                const Text("Enter verification code", style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 10),
+                const SizedBox(height: _sectionSpacing),
+                const Text(
+                  _codeQuestionText,
+                  style: TextStyle(
+                    fontSize: _questionFontSize,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: _questionSpacing),
                 TextField(
                   controller: _verificationCodeController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  maxLength: 6,
+                  maxLength: _verificationCodeLength,
                   onChanged: _onCodeChanged,
                   style: const TextStyle(color: Colors.black),
                   decoration: InputDecoration(
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(_inputBorderRadius),
+                      borderSide: BorderSide.none,
+                    ),
                     counterText: "",
                   ),
                 ),
               ],
               if (_isVerified) ...[
-                const SizedBox(height: 20),
+                const SizedBox(height: _sectionSpacing),
                 Center(
                   child: SizedBox(
-                    width: 100,
-                    height: 50,
+                    width: _buttonWidth,
+                    height: _buttonHeight,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _handleFinalSignUp,
                       style: ButtonStyles.formButtonStyle(context, isEnabled: !_isLoading),
                       child: _isLoading
                           ? const CircularProgressIndicator(color: Colors.grey)
                           : const Text(
-                        "Next",
+                        _nextButtonText,
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: _buttonFontSize,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
