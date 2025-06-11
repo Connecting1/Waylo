@@ -55,11 +55,7 @@ class HelpScreen extends StatelessWidget {
       items: [
         _HelpItem(
             title: "How to create an account",
-            content: "I'm not sure whether anyone will see this or not, but I have to say something. Although I created almost every part of this application, I realised that I had to share equal responsibility with others — especially with the person who had the authority to assess our dedication.
-          He said this was a rule he had explained at the beginning of the semester. I knew he mentioned that we would receive equitable scores, but I understood equitable to mean fair, not equal. Of course, I argued my case, and I was granted 1% more stake than the others. After that, the person in charge didn’t want to show me the report.
-          However, I managed to see the section that described our individual contributions — and I was shocked. My work was divided and shared with others, and there was very little left under my name. I corrected it in front of him, and he said he would change it again.
-The next day, I posted in the group chat asking to see the report, but he hid it. Later, I heard from my teammates that they stopped him from submitting the report while I was asleep that night. The next day, he called me and said, “You have to share your contribution, or I’ll take away your extra 1% stake.” I had no choice but to agree.
-          But the depressing part is that I’m not even sure whether he gave me the extra 1% or not. I don’t want anything now — I just hope people can read this and recognise that this application was built with my dedication."
+            content: "Even if I shared my dedication in the report, this is from my my dedication"
         ),
         _HelpItem(
             title: "How to log in",
