@@ -55,7 +55,7 @@ class HelpScreen extends StatelessWidget {
       items: [
         _HelpItem(
             title: "How to create an account",
-            content: "Even if I shared my dedication in the report, this is from my my dedication"
+            content: "Even if I shared my dedication in the report, this is from my dedication"
         ),
         _HelpItem(
             title: "How to log in",
