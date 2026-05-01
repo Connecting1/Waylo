@@ -52,6 +52,8 @@ class _DraggableWidgetState extends State<DraggableWidget> {
         return 100.0;
       case "profile_image":
         return 40.0;
+      case "career":
+        return 280.0;
       default:
         return 120.0;
     }
@@ -65,6 +67,8 @@ class _DraggableWidgetState extends State<DraggableWidget> {
         return 60.0;
       case "profile_image":
         return 60.0;
+      case "career":
+        return 180.0;
       default:
         return 120.0;
     }

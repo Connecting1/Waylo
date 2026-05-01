@@ -11,6 +11,7 @@ import 'package:waylo_flutter/widgets/draggable_widget.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/profile_image_widget.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/checklist_widget.dart';
 import 'package:waylo_flutter/widgets/custom_widgets/textbox_widget.dart';
+import 'package:waylo_flutter/widgets/custom_widgets/career_widget.dart';
 import 'package:waylo_flutter/models/album_widget.dart';
 import 'package:waylo_flutter/services/api/user_api.dart';
 import 'package:waylo_flutter/services/api/api_service.dart';
@@ -28,6 +29,7 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
   static const String _settingsAddWidgetTitle = "Settings & Add Widget";
   static const String _addChecklistText = "Add Checklist";
   static const String _addTextBoxText = "Add Text Box";
+  static const String _addCareerText = "경력 추가";
   static const String _addProfileImageText = "Add Profile Image";
   static const String _profileImageOptionsTitle = "Profile Image Options";
   static const String _useCurrentProfileText = "Use Current Profile Image";
@@ -57,6 +59,8 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
   static const String _imageUploadErrorMessage = "Error selecting/uploading image: ";
   static const String _textBoxAddedMessage = "Text Box widget added";
   static const String _textBoxFailedMessage = "Failed to add text box widget";
+  static const String _careerAddedMessage = "경력 위젯이 추가되었습니다";
+  static const String _careerFailedMessage = "경력 위젯 추가에 실패했습니다";
 
   // API 키 상수들
   static const String _errorKey = "error";
@@ -65,6 +69,7 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
   static const String _profileImageType = "profile_image";
   static const String _checklistType = "checklist";
   static const String _textBoxType = "text_box";
+  static const String _careerType = "career";
 
   // 모양 타입 상수들
   static const String _circleShape = "circle";
@@ -146,6 +151,7 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
                   _buildAddProfileImageOption(),
                   _buildAddChecklistOption(),
                   _buildAddTextBoxOption(),
+                  _buildAddCareerOption(),
                 ],
               ),
             );
@@ -176,6 +182,18 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
       _handleShowSuccessMessage(_textBoxAddedMessage);
     } else {
       _handleShowErrorMessage(_textBoxFailedMessage);
+    }
+  }
+
+  /// 경력 위젯 추가 처리
+  Future<void> _handleAddCareerWidget() async {
+    final widgetProvider = Provider.of<WidgetProvider>(context, listen: false);
+    final AlbumWidget? widget = await widgetProvider.addCareerWidget();
+
+    if (widget != null) {
+      _handleShowSuccessMessage(_careerAddedMessage);
+    } else {
+      _handleShowErrorMessage(_careerFailedMessage);
     }
   }
 
@@ -404,6 +422,18 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
     );
   }
 
+  /// 경력 추가 옵션 위젯 생성
+  Widget _buildAddCareerOption() {
+    return ListTile(
+      leading: const Icon(Icons.work_outline),
+      title: const Text(_addCareerText),
+      onTap: () {
+        Navigator.pop(context);
+        _handleAddCareerWidget();
+      },
+    );
+  }
+
   /// 프로필 이미지 옵션 바텀시트 표시
   void _showProfileImageOptionsBottomSheet() {
     showModalBottomSheet(
@@ -491,6 +521,8 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
       content = ChecklistWidget(widget: widget);
     } else if (widget.type == _textBoxType) {
       content = TextBoxWidget(widget: widget, isSelected: true);
+    } else if (widget.type == _careerType) {
+      content = CareerWidget(widget: widget);
     } else {
       content = Container(
         color: Colors.grey,
@@ -505,7 +537,9 @@ class AlbumContentWidgetState extends State<AlbumContentWidget> with AutomaticKe
       width: widget.width,
       height: widget.height,
       widgetType: widget.type,
-      resizeMode: widget.type == _textBoxType ? ResizeMode.free : ResizeMode.aspectRatio,
+      resizeMode: (widget.type == _textBoxType || widget.type == _careerType)
+          ? ResizeMode.free
+          : ResizeMode.aspectRatio,
       onPositionChanged: (x, y) {
         widgetProvider.updateWidgetPosition(widget.id, x, y);
       },

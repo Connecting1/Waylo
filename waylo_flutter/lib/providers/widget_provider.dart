@@ -183,6 +183,38 @@ class WidgetProvider extends ChangeNotifier {
     return null;
   }
 
+  /// 경력 위젯 추가
+  Future<AlbumWidget?> addCareerWidget() async {
+    double x = 50.0;
+    double y = 50.0;
+    double width = 360.0;
+    double height = 260.0;
+    Map<String, dynamic> extraData = {
+      "entries": []
+    };
+
+    try {
+      var widgetJson = await WidgetApi.addWidget(
+        type: "career",
+        x: x,
+        y: y,
+        width: width,
+        height: height,
+        extraData: extraData,
+      );
+
+      if (widgetJson != null) {
+        AlbumWidget newWidget = AlbumWidget.fromJson(widgetJson);
+        _widgets.add(newWidget);
+        notifyListeners();
+        return newWidget;
+      }
+    } catch (e) {
+      // 경력 위젯 추가 실패
+    }
+    return null;
+  }
+
   /// 위젯의 추가 데이터 업데이트
   Future<bool> updateWidgetExtraData(String widgetId, Map<String, dynamic> extraData) async {
     int index = _widgets.indexWhere((w) => w.id == widgetId);
