@@ -22,57 +22,75 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 ## Features
 
 ### Map
-Visualize your travels on a world map. Zoom out to see the countries you've visited marked with their national flag — zoom in to see your photos pinned to the exact location they were taken.
-
 <div align="center">
   <img src="assets/screenshots/map_world.png" width="250"/>
   <img src="assets/screenshots/map_detail.png" width="250"/>
 </div>
 
+- Zoom out to view visited countries marked with their national flags
+- Zoom in to see photos pinned to their exact GPS coordinates
+- Tap any photo pin to view the full post details
+- Navigate to your current location with one tap
+
 <br/>
 
 ### Feed
-Browse your friends' travel photos in a feed. Each post shows the photo along with its location on a map. Like and comment to share the experience.
-
 <div align="center">
   <img src="assets/screenshots/feed.png" width="250"/>
 </div>
 
+- Browse friends' travel photos in a scrollable feed
+- Each post displays the photo, caption, and shooting location on a mini map
+- Like and comment on posts
+- Set post visibility to public or private when uploading
+- Auto-detects photo date from EXIF data
+- Manually adjust the photo location using an interactive map picker
+
 <br/>
 
 ### Album
-Customize your personal album canvas with widgets — add photos, text boxes, and bucket list checklists to make your travel diary truly yours.
-
 <div align="center">
   <img src="assets/screenshots/album.png" width="250"/>
 </div>
 
+- Customize canvas background color and pattern
+- Add and reposition widgets freely on the canvas
+- Widgets include: profile image, text box, and bucket list checklist
+
 <br/>
 
 ### Location Sharing
-Share your real-time location on the map. Your current position is displayed as your profile icon, with adjustable update intervals.
-
 <div align="center">
   <img src="assets/screenshots/location_sharing.png" width="250"/>
 </div>
 
+- Display your current location on the map as your profile icon
+- Toggle real-time location tracking on or off
+- Set a custom location update interval
+- Location is only visible to yourself
+
 <br/>
 
 ### Chat
-Chat directly with your friends inside the app.
-
 <div align="center">
   <img src="assets/screenshots/chat.png" width="250"/>
 </div>
 
+- Direct messaging with friends
+- Read receipts to confirm when messages have been seen
+- Unread message indicators on the chat list
+
 <br/>
 
 ### Friends
-Search for users, send friend requests, and manage your friend list.
-
 <div align="center">
   <img src="assets/screenshots/friends.png" width="250"/>
 </div>
+
+- Search for users by username
+- Send and receive friend requests
+- View your friends list with the date you became friends
+- Access a friend's profile and shared map directly from the list
 
 ---
 
