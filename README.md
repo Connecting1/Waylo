@@ -101,6 +101,14 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 
 ---
 
+## Database ERD
+
+<div align="center">
+  <img src="assets/erd.png" width="800"/>
+</div>
+
+---
+
 ## Tech Stack
 
 | | Technology |
