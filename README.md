@@ -38,9 +38,6 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 <div align="center">
   <img src="assets/screenshots/feed.png" width="250"/>
   <img src="assets/screenshots/feed_map.png" width="250"/>
-</div>
-
-<div align="center">
   <img src="assets/screenshots/feed_create.png" width="250"/>
   <img src="assets/screenshots/feed_location.png" width="250"/>
 </div>
