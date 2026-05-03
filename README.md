@@ -37,14 +37,20 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 ### Feed
 <div align="center">
   <img src="assets/screenshots/feed.png" width="250"/>
+  <img src="assets/screenshots/feed_map.png" width="250"/>
+</div>
+
+<div align="center">
+  <img src="assets/screenshots/feed_create.png" width="250"/>
+  <img src="assets/screenshots/feed_location.png" width="250"/>
 </div>
 
 - Browse friends' travel photos in a scrollable feed
-- Each post displays the photo, caption, and shooting location on a mini map
-- Like and comment on posts
-- Set post visibility to public or private when uploading
-- Auto-detects photo date from EXIF data
-- Manually adjust the photo location using an interactive map picker
+- Tap the location on a post to explore the shooting spot on an interactive map
+- Upload a photo with caption, date, and location
+- Photo date and location are auto-detected from EXIF data
+- Manually adjust the location using an interactive map picker
+- Set post visibility to public or private
 
 <br/>
 
@@ -61,6 +67,8 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 
 ### Location Sharing
 <div align="center">
+  <img src="assets/screenshots/location_sharing_settings.png" width="250"/>
+  <img src="assets/screenshots/location_sharing_world.png" width="250"/>
   <img src="assets/screenshots/location_sharing.png" width="250"/>
 </div>
 
@@ -73,6 +81,7 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 
 ### Chat
 <div align="center">
+  <img src="assets/screenshots/chat_list.png" width="250"/>
   <img src="assets/screenshots/chat.png" width="250"/>
 </div>
 
@@ -84,6 +93,8 @@ Waylo is a mobile app that lets you record your travel memories on a map, share 
 
 ### Friends
 <div align="center">
+  <img src="assets/screenshots/friends_search.png" width="250"/>
+  <img src="assets/screenshots/friends_request.png" width="250"/>
   <img src="assets/screenshots/friends.png" width="250"/>
 </div>
 
